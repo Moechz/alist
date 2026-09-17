@@ -1,0 +1,152 @@
+#!/bin/bash
+# postinst - 安装/升级后处理
+# 组件树（/usr/local/alist 下的二进制/配置/服务）随 deb 分发，
+# postinst 负责"派生状态"：属主、webui 解压、系统层注册（服务+nginx）、
+# 首装初始化（config.json 预置）、启动服务与健康检查。
+# 注：经 TOS 应用中心安装时平台也会注册 init.d 服务与 nginx 配置，
+# 本脚本的操作全部幂等，两条安装路径行为一致。
+# 管理员初始化采用上游官方设计：首次启动时 AList 自动生成随机初始密码
+# 并打印到服务日志（仅 stdout，不落 log.log），systemd 收入 journal。
+set -e
+
+APP_ID=alist
+APP_DIR=/usr/local/alist
+APP_USER=alist
+DATA_DIR=/var/lib/alist
+APP_PORT=15244
+MAINT_LOG=/var/log/alist-maint.log
+
+pkg_log() {
+  mkdir -p /var/log 2>/dev/null || true
+  echo "$(date '+%F %T') $*" >> "$MAINT_LOG" 2>/dev/null || true
+}
+# 维护日志收敛为 root 可读写（默认 umask 下 0644 会泄露排障细节给本机普通用户）
+chmod 0600 "$MAINT_LOG" 2>/dev/null || true
+pkg_log postinst "$1" "new=@VERSION@${2:+ old=$2}"
+
+case "$1" in
+  configure)
+    # 1. 用户兜底（preinst 已建；平台自动创建路径亦覆盖）
+    if ! id -u $APP_USER > /dev/null 2>&1; then
+      useradd --system --user-group --no-create-home --shell /usr/sbin/nologin $APP_USER 2>/dev/null || true
+    fi
+
+    # 2. 文件属主（官方 postinst 模板：应用目录归运行用户）
+    chown -R $APP_USER:$APP_USER "$APP_DIR" 2>/dev/null || true
+
+    # 3. 解压 webui.bz2（官方模板行为；External 模式下为占位页）
+    if [ -f "$APP_DIR/webui.bz2" ]; then
+      ( cd "$APP_DIR" && tar -xjf webui.bz2 2>/dev/null || true )
+    fi
+
+    # 4. 环境变量文件首装引导：仅在不存在时从随包模板复制（升级永不覆盖用户配置）
+    if [ ! -e "$APP_DIR/alist.env" ] && [ -e "$APP_DIR/alist.env.example" ]; then
+      install -m 0640 -o $APP_USER -g $APP_USER \
+        "$APP_DIR/alist.env.example" "$APP_DIR/alist.env"
+      pkg_log postinst bootstrap "alist.env 首装"
+    fi
+
+    # 5. 数据目录（数据库 / 配置 / 临时文件 / 搜索索引 / 日志）
+    install -d -o $APP_USER -g $APP_USER -m 0750 "$DATA_DIR"
+
+    # 6. 首装预置 config.json（仅在不存在时写入，升级永不覆盖）
+    #    安全关键项写死：回环监听 + 端口 + /alist 子路径 + 关闭 HTTPS；
+    #    与 alist.env 的活动默认值互为双保险（删除任一层都不会端口外泄）。
+    #    site_url 只写路径部分：AList 用它挂载路由前缀与前端 base_path，
+    #    不含 scheme://host 可避免生成丢端口的绝对 URL。
+    if [ ! -f "$DATA_DIR/config.json" ]; then
+      JWT_SECRET=$(openssl rand -hex 16 2>/dev/null || head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')
+      cat > "$DATA_DIR/config.json" <<EOJ
+{
+  "force": false,
+  "site_url": "/alist",
+  "jwt_secret": "$JWT_SECRET",
+  "database": {
+    "type": "sqlite3",
+    "db_file": "$DATA_DIR/data.db"
+  },
+  "scheme": {
+    "address": "127.0.0.1",
+    "http_port": $APP_PORT,
+    "https_port": -1,
+    "force_https": false
+  }
+}
+EOJ
+      chown $APP_USER:$APP_USER "$DATA_DIR/config.json"
+      chmod 0640 "$DATA_DIR/config.json"
+      pkg_log postinst bootstrap "config.json 预置（127.0.0.1:$APP_PORT, site_url=/alist）"
+    fi
+
+    # 7. 管理员初始化：不干预，交给上游官方流程 ——首次启动时 AList 自动
+    #    生成随机初始密码并打印到服务日志，获取方式（官方设计的入口）：
+    #    journalctl -u alist | grep -i "initial password"
+    chown -R $APP_USER:$APP_USER "$DATA_DIR" 2>/dev/null || true
+
+    # 8. 系统层注册（幂等；应用中心安装时平台也会做同样的事）
+    install -m 0644 "$APP_DIR/init.d/$APP_ID.service" \
+      /etc/systemd/system/$APP_ID.service
+    systemctl daemon-reload
+
+    # 启用（幂等，升级路径 prerm 只停不拆故必须重 enable）并（重）启动
+    systemctl enable $APP_ID.service > /dev/null 2>&1 || true
+    if [ -n "${2:-}" ]; then
+      systemctl restart $APP_ID.service 2>/dev/null || true
+    else
+      systemctl start $APP_ID.service 2>/dev/null || true
+    fi
+
+    # 9. nginx 路由（TOS 平台会加载 nginx/<appid>.conf，此处在系统 nginx 兜底注册）
+    # 注意：裸 location 仅在 server 上下文合法（TOS 的 conf.d 即 include 在 server 层）；
+    # 写入后立即 nginx -t 校验，失败则回滚，绝不留下导致 nginx 无法 reload 的配置
+    if command -v nginx > /dev/null 2>&1 && [ -d /etc/nginx/conf.d ]; then
+      install -m 0644 "$APP_DIR/nginx/$APP_ID.conf" \
+        /etc/nginx/conf.d/$APP_ID.conf
+      if nginx -t > /dev/null 2>&1; then
+        nginx -s reload > /dev/null 2>&1 || true
+      else
+        rm -f /etc/nginx/conf.d/$APP_ID.conf
+        echo "提示: 本机 nginx 的 conf.d 不在 server 上下文，已跳过自动注册 /alist/。" >&2
+        echo "      请把 $APP_DIR/nginx/$APP_ID.conf 的 location 段手工加入对应 server 块。" >&2
+      fi
+    fi
+
+    # 10. 就绪检查（坑 26）：轮询健康接口而非只看 restart 返回码，30s 上限；
+    #     超时打有限状态快照入 dpkg 日志，便于远程排障
+    READY=0
+    for i in $(seq 1 30); do
+      if curl -fsS -m 2 "http://127.0.0.1:$APP_PORT/alist/ping" 2>/dev/null | grep -q pong; then
+        READY=1
+        break
+      fi
+      sleep 1
+    done
+    if [ "$READY" = "1" ]; then
+      pkg_log postinst "alist.service 就绪（/alist/ping -> pong）"
+    else
+      echo "警告: alist 服务 30 秒内未就绪，排查命令:" >&2
+      echo "      journalctl -u alist -n 50 --no-pager" >&2
+      echo "      tail -n 50 $DATA_DIR/log/log.log" >&2
+      systemctl --no-pager -l status $APP_ID.service | head -15 >&2 || true
+      pkg_log postinst warn "健康检查超时"
+    fi
+
+    pkg_log postinst done "@VERSION@"
+    echo ""
+    if [ -n "${2:-}" ]; then
+      echo "AList @VERSION@ 已完成升级（自 $2）。"
+    else
+      echo "AList @VERSION@ 已安装。"
+    fi
+    echo "  打开界面 : TOS 桌面 → AList 图标（新标签页打开 http://<NAS的IP>:8181/alist/）"
+    echo "  登录账号 : admin"
+    echo "  初始密码 : journalctl -u alist | grep -i \"initial password\" （上游官方方式，仅首启打印）"
+    echo "  数据目录 : $DATA_DIR（数据库/配置/索引，remove 保留 / purge 删除）"
+    echo "  修改配置 : 编辑 $APP_DIR/alist.env（端口/数据库/FTP 等）后 systemctl restart alist"
+    echo "  端口说明 : 仅监听 127.0.0.1:$APP_PORT，不对外暴露端口（经 TOS nginx 路由访问）"
+    echo "  WebDAV   : http://<NAS的IP>:8181/alist/dav/ （用 AList 账号登录）"
+    echo ""
+    ;;
+esac
+
+exit 0

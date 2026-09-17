@@ -1,0 +1,28 @@
+Package: alist
+Version: @VERSION@
+Architecture: @ARCH@
+Maintainer: @MAINTAINER@
+Installed-Size: @SIZE@
+Depends: systemd
+Recommends: ffmpeg
+Section: net
+Priority: optional
+Homepage: https://alistgo.com
+Description: AList File Manager - aggregate cloud drives with WebDAV
+ AList is a self-hosted file list program that aggregates many storage
+ backends (local folders, WebDAV, S3-compatible object storage and dozens
+ of cloud drives) behind one clean web UI: browse, preview, upload,
+ download, share, offline-download, plus a built-in WebDAV server so any
+ client can mount all your storages as one drive.
+ .
+ The web UI opens in a new browser tab via the TOS App Center route
+ /alist/. The backend listens on loopback only: no external port is
+ exposed. On first start AList generates the initial admin password
+ itself and prints it to the service log (official upstream
+ behavior); retrieve it with: journalctl -u alist | grep -i
+ "initial password" (username: admin, change it after login).
+ Database, temp files and search index are stored in /var/lib/alist;
+ 'apt remove' keeps them, 'apt purge' deletes them.
+ .
+ Upstream: https://github.com/AlistGo/alist (AGPL-3.0)
+ Upstream author: AList Team. Packaged for TOS by the deb Maintainer.
