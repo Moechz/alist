@@ -17,9 +17,13 @@ on:
         description: 'alist-web release tag for the frontend dist (empty = latest)'
         required: false
         default: ''
+      release_tag:
+        description: 'Attach artifacts to this release tag (e.g. build-v3.64.0); empty = artifact only'
+        required: false
+        default: ''
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -111,3 +115,18 @@ jobs:
           name: alist-source-build-${{ github.event.inputs.tag }}
           path: out/
           if-no-files-found: error
+
+      - name: Attach to release (${{ github.event.inputs.release_tag }})
+        if: github.event.inputs.release_tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag }}
+          name: 'Source build of upstream ${{ github.event.inputs.tag }}'
+          body: |
+            Binaries built from upstream source tag ${{ github.event.inputs.tag }}
+            by [.github/workflows/build-upstream.yml](https://github.com/Moechz/alist/blob/main/.github/workflows/build-upstream.yml).
+
+            Audit chain: upstream source tag → public workflow file → public Actions run
+            ${{ github.run_id }} → SHA256SUMS below. Static musl, no UPX.
+          files: out/*
+          prerelease: true
