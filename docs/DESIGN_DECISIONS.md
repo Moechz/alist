@@ -33,17 +33,37 @@
 - 剩余风险：两层同时被删才会外泄（用户显式行为），接受
 - postinst 只在 config.json 不存在时预置（升级永不覆盖用户配置，坑 2 精神）
 
-### D-005: 管理员初始化采用上游官方设计（首启随机密码打印到服务日志）【替代首版自创机制】
-**Decision:** postinst 不做任何账号/密码干预。首次启动时 AList 自动生成随机初始密码并打印到 stdout（实测不落 log.log），systemd 收入 journal；用户用 `journalctl -u alist | grep -i "initial password"` 获取，登录后修改。
+### D-005: 初始密码采用安装期预置 + root-0600 文件（F10 审核定案，含一次决策反转）
+**Decision:** postinst 首装（data.db 与密码文件均不存在）时生成 16 位随机密码，`alist admin set --data` 一次性建库+建号+设密；密码仅写 `/var/lib/alist/admin_password.txt`（root 0600）。
 **Consequences:**
-- 与上游/Docker 官方体验完全一致（熟悉 AList 的用户零学习成本；官方文档就是这么教的）
-- 首版曾用自创机制（postinst 生成 16 位密码 + `alist admin set` 落库 + 写 admin_password.txt 0600）——用户决策"采用原始设计"后废弃，postinst 删掉密码块、14 语言指引改 journalctl 方式、真机 purge 重装复验登录 200
-- 遗留风险：journal 轮转后找不到密码（登录后立即修改即可规避；旧密码文件机制无此风险，已接受）
-- 忘记密码重置：`runuser -u alist -- /usr/local/alist/bin/alist admin set --data /var/lib/alist '新密码'`
+- 安装期已建号 → 服务首启不触发上游 initial password 日志打印，journal 无密码明文（F10 要求；真机验证）
+- **决策反转记录**：3.64.0-1 曾应“贴近官方设计”改为上游默认（首启打日志），首次提审被 F10 驳回（“日志不得含敏感数据”）；审核员指名修法即本方案。教训：**上游默认行为与平台规范冲突时，平台规范优先**
+- 密码不进维护日志/dpkg 输出（0644 面）；忘记密码用 `runuser -u alist -- /usr/local/alist/bin/alist admin set --data /var/lib/alist '新密码'` 重置
 
 ## 打包与分发
 
-### D-006: 版本 3.64.0-1；本地/上架双命名产物
+### D-011: 二进制源码可审计构建（V6 一票否决项的修复）
+**Decision:** 不再分发上游官方预编译二进制；本仓库 `.github/workflows/build-upstream.yml` 从上游 tag 源码构建静态 musl 双架构产物（前端用 alist-web 官方 dist），发布于 Release `build-v<上游版本>`；本地 build.sh fetch 改拉自建产物，sha256 双重校验（CI SHA256SUMS + config.env pin）。
+**Consequences:**
+- 审计链公开闭环：上游源码 tag → workflow 文件 → Actions 运行日志 → Release 资产 + SHA256SUMS
+- 全静态 musl（比官方 arm64 的 glibc 动态更稳）；不跑 UPX → 完整 section header，消除“加壳黑盒”观感（官方 amd64 被 UPX 压过，正是首次被拒的观感问题之一）
+- verify 新增断言：静态链接 + 无 "no section header"（防回退到预编译二进制）
+- 代价：CI 重建产物后必须同步 config.env 两个 pin（built_at 时间戳使哈希不可复现）；上游升级时 workflow 需手动触发
+- 前端审计链弱一环（alist-web 官方 dist 为预构建）：接受，workflow 记录其 tag 与哈希
+
+### D-012: 隐私政策双语 + 双落盘（C3 修复）
+**Decision:** assets/privacy-policy.html（英文在前中文在后），打包至 /usr/local/alist/，nginx 精确 location 提供 /alist/privacy-policy.html（200 实测）。
+**Consequences:**
+- 提审表单可直接填公开仓库 URL；包内静态文件不依赖外网
+- 精确匹配 location 优先于前缀反代，无冲突
+
+### D-013: webui.bz2 归档归一化 root:root（S11 修复）
+**Decision:** build.sh 用 python3 tarfile 重打 webui.bz2（uid/gid=0、uname=root、mtime=0），verify 断言全部条目属主为 0。
+**Consequences:**
+- macOS bsdtar 无 GNU tar 的 --owner 参数，嵌套归档会带打包机 uid 501；python3 方案跨平台
+- deb 主归档由 makedeb.sh 的 root:root 参数保证，本修复覆盖唯一的漏洞（嵌套 webui.bz2）
+
+### D-006: 版本 3.64.0-2；本地/上架双命名产物
 **Decision:** 完整版本 = `上游版本-迭代号`；本地测试 deb `alist_3.64.0-1_amd64.deb`，上架资产 `alist_{x86_64,aarch64}.deb`（+ .sha256），Release tag `v3.64.0-1`。
 **Consequences:**
 - 迭代号永不零填充（dpkg 认为 -01 == -1）

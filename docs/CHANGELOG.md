@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.64.0-2 — 2026-09-19
+
+### Fixed（针对首次提审驳回项 V6/F10/C3/S11）
+- **V6（一票否决）**：deb 内二进制改为本仓库 GitHub Actions 从上游 v3.64.0 源码构建（静态 musl 双架构、无 UPX、完整 section header），审计链 = 上游源码 tag → 公开 workflow → Actions 日志 → build-v3.64.0 Release 资产；verify 新增静态链接/未加壳断言，fetch 改拉自建产物并双重 pin 校验
+- **F10**：初始管理员密码改为安装期预置（postinst `admin set`），仅存 /var/lib/alist/admin_password.txt（root 0600）；安装期建号后首启无密码日志打印（“官方首启打日志”设计被 F10 驳回，回归打包层方案）
+- **C3**：新增双语隐私政策（包内 /usr/local/alist/privacy-policy.html + nginx 路由 /alist/privacy-policy.html，静态可达）
+- **S11**：webui.bz2 归档条目归一化为 root:root（python3 tarfile 跨平台重打，摆脱 macOS bsdtar 无 --owner 的限制），verify 新增 uid/gid=0 断言
+
 ## 3.64.0-1 — 2026-09-17
 
 ### Added
