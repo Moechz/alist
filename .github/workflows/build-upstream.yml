@@ -1,0 +1,111 @@
+name: Build upstream binaries
+
+# V6 (review finding): the TOS deb must not ship unauditable prebuilt binaries.
+# This workflow builds the AList backend from the upstream source tag with the
+# official alist-web frontend dist, producing fully-static musl binaries.
+# Audit chain: upstream source tag + this workflow file + public Actions logs
+# + SHA256SUMS shipped with the release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Upstream AList tag to build (e.g. v3.64.0)'
+        required: true
+        default: 'v3.64.0'
+      web_version:
+        description: 'alist-web release tag for the frontend dist (empty = latest)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: linux/amd64 + linux/arm64 (musl, static, no UPX)
+    runs-on: ubuntu-latest
+    env:
+      GOFLAGS: -trimpath
+      TAG: ${{ github.event.inputs.tag }}
+    steps:
+      - name: Checkout upstream AList at ${{ github.event.inputs.tag }}
+        uses: actions/checkout@v4
+        with:
+          repository: AlistGo/alist
+          ref: ${{ github.event.inputs.tag }}
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          check-latest: true
+
+      - name: Fetch frontend dist (alist-web official release)
+        run: |
+          WEB_TAG="${{ github.event.inputs.web_version }}"
+          if [ -z "$WEB_TAG" ]; then
+            WEB_TAG=$(curl -fsSL https://api.github.com/repos/alist-org/alist-web/releases/latest \
+              | grep -o '"tag_name": *"[^"]*"' | cut -d'"' -f4)
+          fi
+          echo "web dist tag: $WEB_TAG"
+          echo "WEB_TAG=$WEB_TAG" >> "$GITHUB_ENV"
+          curl -fL "https://github.com/alist-org/alist-web/releases/download/${WEB_TAG}/dist.tar.gz" -o dist.tar.gz
+          rm -rf public && mkdir -p public
+          tar -xzf dist.tar.gz -C public
+          test -f public/dist/index.html
+
+      - name: Install musl cross toolchains (go-cross/musl-toolchain-archive)
+        run: |
+          BASE="https://github.com/go-cross/musl-toolchain-archive/releases/latest/download/"
+          for f in x86_64-linux-musl-cross aarch64-linux-musl-cross; do
+            curl -fL "${BASE}${f}.tgz" -o "${f}.tgz"
+            sudo tar xf "${f}.tgz" --strip-components 1 -C /usr/local
+            rm -f "${f}.tgz"
+          done
+
+      - name: Build
+        run: |
+          go mod download
+          version="${TAG}"
+          web_version="${WEB_TAG}"
+          built_at="$(date +'%F %T %z')"
+          commit="$(git rev-parse --short HEAD)"
+          ldflags="-w -s \
+            -X 'github.com/alist-org/alist/v3/internal/conf.BuiltAt=${built_at}' \
+            -X 'github.com/alist-org/alist/v3/internal/conf.GitAuthor=Xhofe <i@nn.ci>' \
+            -X 'github.com/alist-org/alist/v3/internal/conf.GitCommit=${commit}' \
+            -X 'github.com/alist-org/alist/v3/internal/conf.Version=${version}' \
+            -X 'github.com/alist-org/alist/v3/internal/conf.WebVersion=${web_version}'"
+          muslflags="--extldflags '-static -fpic' ${ldflags}"
+          export CGO_ENABLED=1 GOOS=linux
+          for pair in "amd64 x86_64-linux-musl-gcc" "arm64 aarch64-linux-musl-gcc"; do
+            set -- $pair
+            export GOARCH="$1" CC="$2"
+            echo "building linux/$1 (static musl, no UPX) ..."
+            go build -o "alist-linux-musl-$1" -ldflags="$muslflags" -tags=jsoniter .
+          done
+          file alist-linux-musl-*
+
+      - name: Smoke test (amd64 binary runs on the runner)
+        run: |
+          ./alist-linux-musl-amd64 version
+
+      - name: Package & checksums
+        run: |
+          mkdir -p out
+          for a in amd64 arm64; do
+            mkdir -p "pkg-$a"
+            cp "alist-linux-musl-$a" "pkg-$a/alist"
+            chmod 0755 "pkg-$a/alist"
+            ( cd "pkg-$a" && tar -czf "../out/alist-linux-musl-${a}.tar.gz" alist )
+          done
+          ( cd out && sha256sum alist-linux-musl-*.tar.gz > SHA256SUMS && cat SHA256SUMS )
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: alist-source-build-${{ github.event.inputs.tag }}
+          path: out/
+          if-no-files-found: error
