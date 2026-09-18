@@ -63,10 +63,13 @@ case "$TARGET_ARCH" in
 esac
 
 TAG="v$ALIST_VERSION"
-RELEASE_BASE="https://github.com/AlistGo/alist/releases/download/$TAG"
-# 注意：AList 的 tarball 资产名不带版本号（与 beszel 同类怪癖，见打包指南坑 7）
-TGZ="alist-linux-${GOARCH}.tar.gz"
-CHECKSUMS="md5.txt"
+# 源码构建产物源（V6 审核要求：deb 内二进制必须可溯源）：
+# 本仓库 .github/workflows/build-upstream.yml 从上游 tag 源码构建
+# （静态 musl 双架构，无 UPX），产物发布于 Release build-v<上游版本>；
+# CI 重新构建后必须同步更新 config.env 的两个 sha256 pin
+BIN_SOURCE_BASE="https://github.com/Moechz/alist/releases/download/build-v$ALIST_VERSION"
+TGZ="alist-linux-musl-${GOARCH}.tar.gz"
+CHECKSUMS="SHA256SUMS"
 DEB_FILE="$OUT_DIR/${APP_ID}_${VERSION_FULL}_${TARGET_ARCH}.deb"
 STORE_DEB="$OUT_DIR/${APP_ID}_${TOS_PLATFORM}.deb"       # Release 资产命名（无版本）
 
@@ -134,30 +137,30 @@ PYEOF
 stage_fetch() {
   mkdir -p "$DL_DIR"
 
-  # 1. alist 二进制（官方 Release，Go 静态编译，前端已内嵌）
-  fetch "$RELEASE_BASE/$TGZ" "$DL_DIR/$TGZ"
+  # 1. 源码构建产物（V6：本仓库 CI 从上游 tag 构建，公开审计链
+  #    源码 tag → workflow → Actions 日志 → build-v* Release 资产）
+  fetch "$BIN_SOURCE_BASE/$TGZ" "$DL_DIR/$TGZ"
 
-  # 2. 官方 md5 校验文件
-  fetch "$RELEASE_BASE/$CHECKSUMS" "$DL_DIR/$CHECKSUMS"
+  # 2. 同批发布的 SHA256SUMS（CI 产出）
+  fetch "$BIN_SOURCE_BASE/$CHECKSUMS" "$DL_DIR/$CHECKSUMS"
 
   # 3. 上游 LICENSE（AGPL-3.0，进 /usr/share/doc/alist/copyright）
   #    tarball 内不含 LICENSE，从源码仓库对应 tag 拉取
   fetch "https://raw.githubusercontent.com/AlistGo/alist/$TAG/LICENSE" "$DL_DIR/LICENSE"
 
-  # 4. 双重校验：md5 对照官方 md5.txt；sha256 对照 config.env pin 值
-  log "校验 md5（对照官方 md5.txt）与 sha256（对照 config.env pin）..."
-  local want_md5 got_md5 want_sha got_sha
-  # md5.txt 内路径形如 "hash  ./alist-linux-amd64.tar.gz"（带 ./ 前缀），匹配时不限定前导空格
-  want_md5=$(grep -a "$TGZ\$" "$DL_DIR/$CHECKSUMS" | tail -1 | awk '{print $1}')
-  [ -n "$want_md5" ] || die "md5.txt 中找不到 $TGZ"
-  got_md5=$(md5_of "$DL_DIR/$TGZ")
-  [ "$got_md5" = "$want_md5" ] || die "md5 不匹配: $TGZ（want=$want_md5 got=$got_md5，删除后重跑 fetch）"
-  log "  md5 ok: $TGZ"
+  # 4. 双重校验：sha256 对照 CI 发布的 SHA256SUMS + config.env pin
+  #    （两层独立：Release 资产被篡改 → pin 不符；pin 误改 → SUMS 不符）
+  log "校验 sha256（对照 CI SHA256SUMS 与 config.env pin）..."
+  local want_sum got_sum want_pin
+  want_sum=$(grep -a "[ /]${TGZ}\$" "$DL_DIR/$CHECKSUMS" | tail -1 | awk '{print $1}')
+  [ -n "$want_sum" ] || die "SHA256SUMS 中找不到 $TGZ"
+  got_sum=$(sha256_of "$DL_DIR/$TGZ")
+  [ "$got_sum" = "$want_sum" ] || die "sha256 与 CI SHA256SUMS 不符: $TGZ（want=$want_sum got=$got_sum）"
+  log "  sha256 ok（CI SHA256SUMS 一致）"
 
-  want_sha="$PINNED_SHA256"
-  got_sha=$(sha256_of "$DL_DIR/$TGZ")
-  [ "$got_sha" = "$want_sha" ] || die "sha256 与 pin 不符: $TGZ（want=$want_sha got=$got_sha；若确为上游重新发布，请更新 config.env 的 pin）"
-  log "  sha256 ok: $TGZ（pin 一致）"
+  want_pin="$PINNED_SHA256"
+  [ "$got_sum" = "$want_pin" ] || die "sha256 与 config.env pin 不符（want=$want_pin got=$got_sum；若 CI 重建过产物，请同步更新 pin）"
+  log "  sha256 ok（pin 一致）"
 }
 
 # ============================================================
@@ -220,14 +223,36 @@ stage_stage() {
       "$ASSETS_DIR/webui/index.html" > "$WEBUI_DIR/index.html"
   # 坑 8（macOS 污染）：bsdtar 会把扩展属性（com.apple.provenance 等）
   # 存成 AppleDouble ._ 条目打进归档，TOS 解包后出现 ._index.html 垃圾文件。
-  # 双保险：COPYFILE_DISABLE=1 禁用 + 打包前删除 ._ 文件
+  # COPYFILE_DISABLE=1 禁用 + 打包前删 ._ 文件。
+  # S11（审核意见）：归档条目必须 uid/gid=0 —— macOS bsdtar 无 GNU tar 的
+  # --owner 参数，会把本地 uid 501（打包机用户）写进条目；用 python3 tarfile
+  # 跨平台归一化为 root:root，同时统一 mtime=0 利于可复现构建。
   export COPYFILE_DISABLE=1
   find "$WEBUI_DIR" -name '._*' -delete 2>/dev/null || true
-  ( cd "$WEBUI_DIR" && COPYFILE_DISABLE=1 tar -cjf "$APP/webui.bz2" index.html )
+  python3 - "$WEBUI_DIR" "$APP/webui.bz2" <<'PYW'
+import sys, tarfile
+from pathlib import Path
+src_dir, out = sys.argv[1], sys.argv[2]
+with tarfile.open(out, "w:bz2") as tf:
+    for p in sorted(Path(src_dir).iterdir()):
+        ti = tf.gettarinfo(str(p), arcname=p.name)
+        ti.uid = ti.gid = 0
+        ti.uname = ti.gname = "root"
+        ti.mtime = 0
+        if ti.isfile():
+            with open(p, "rb") as f:
+                tf.addfile(ti, f)
+        else:
+            tf.addfile(ti)
+PYW
 
   # 配置模板（以 .example 随包分发，postinst 首装复制为正式 env；升级不覆盖）
   log "  + $APP_ID.env.example 配置模板"
   cp "$ASSETS_DIR/$APP_ID.env" "$APP/$APP_ID.env.example"
+
+  # 隐私政策（审核 C3）：包内落盘 /usr/local/alist/，并经 nginx 精确路由提供
+  log "  + privacy-policy.html（双语隐私政策）"
+  cp "$ASSETS_DIR/privacy-policy.html" "$APP/privacy-policy.html"
 
   # 文档
   cp "$DL_DIR/LICENSE" "$STAGE_DIR/usr/share/doc/$APP_ID/copyright"
@@ -284,6 +309,7 @@ stage_verify() {
            "$APP/bin/alist" \
            "$APP/webui.bz2" \
            "$APP/$APP_ID.env.example" \
+           "$APP/privacy-policy.html" \
            "$STAGE_DIR/usr/share/doc/$APP_ID/copyright"; do
     [ -e "$p" ] || { warn "缺失: ${p#$STAGE_DIR/}"; fail=1; }
   done
@@ -367,21 +393,42 @@ PYEOF
   grep -q '<svg' "$APP/images/icons/$APP_ID.svg" || { warn "图标非 SVG"; fail=1; }
   grep -q 'viewBox=' "$APP/images/icons/$APP_ID.svg" || { warn "图标缺 viewBox（规范硬性要求）"; fail=1; }
 
-  log "校验 webui.bz2（解压含 .html）..."
+  log "校验 webui.bz2（解压含 .html / 条目属主 root:root / 无 ._ 污染）..."
   tar tjf "$APP/webui.bz2" | grep -q '\.html$' || { warn "webui.bz2 缺少 html"; fail=1; }
   if tar tjf "$APP/webui.bz2" | grep -qE '(^|/)\._'; then
     warn "webui.bz2 含 AppleDouble ._ 垃圾条目（macOS 污染）"
     fail=1
   fi
+  python3 - "$APP/webui.bz2" <<'PYW2' || fail=1
+import sys, tarfile
+with tarfile.open(sys.argv[1], "r:bz2") as tf:
+    bad = [m.name for m in tf.getmembers() if m.uid != 0 or m.gid != 0]
+    if bad:
+        print(f"S11: webui.bz2 存在非 root 属主条目: {bad}")
+        sys.exit(1)
+PYW2
 
-  log "校验 ELF 架构（目标: $ELF_ARCH, for GNU/Linux）..."
-  local f
+  log "校验 ELF（架构 $ELF_ARCH / 静态链接 / 完整 section header，V6 防黑盒）..."
+  local f elfinfo
   for f in "$APP/bin/alist"; do
-    if file "$f" | grep -q "ELF.*$ELF_ARCH"; then
-      log "  ok: $(basename "$f")"
+    elfinfo=$(file "$f")
+    if echo "$elfinfo" | grep -q "ELF.*$ELF_ARCH"; then
+      log "  ok 架构: $(basename "$f")"
     else
-      warn "错误架构: ${f#$STAGE_DIR/} -> $(file "$f")"
+      warn "错误架构: ${f#$STAGE_DIR/} -> $elfinfo"
       fail=1
+    fi
+    if echo "$elfinfo" | grep -q "statically linked"; then
+      log "  ok 静态链接（musl）"
+    else
+      warn "非静态链接（V6 要求全静态便于审计）: $elfinfo"
+      fail=1
+    fi
+    if echo "$elfinfo" | grep -q "no section header"; then
+      warn "无 section header（UPX 加壳特征，V6 一票否决项！）: $elfinfo"
+      fail=1
+    else
+      log "  ok section header 完整（未加壳）"
     fi
   done
 

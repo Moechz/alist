@@ -14,7 +14,7 @@
 | 反代 | TOS nginx 前缀保留转发（AList 以 `site_url=/alist` 原生跑子路径） |
 | 运行身份 | 专用非特权用户 `alist`，systemd 沙箱加固 |
 | 数据目录 | `/var/lib/alist`（数据库/配置/索引/日志；remove 保留、purge 删除） |
-| 初始密码 | 上游官方机制：首次启动自动生成并打印到 journal（`journalctl -u alist | grep -i "initial password"`） |
+| 初始密码 | 安装时自动生成，仅存 `/var/lib/alist/admin_password.txt`（root 0600；审核 F10 要求，不进日志） |
 | WebDAV | `http://<NAS>:8181/alist/dav/` |
 | 依赖 | 零运行时依赖（Go 静态二进制；`Recommends: ffmpeg` 增强） |
 
@@ -36,7 +36,7 @@ make arm64          # aarch64 构建
 ## 首次使用
 
 1. TOS 桌面 → AList 图标（新标签页打开 `http://<NAS>:8181/alist/`）
-2. 获取初始密码（上游官方方式，NAS 管理员 SSH）：`journalctl -u alist | grep -i "initial password"`
+2. 读取初始管理员密码（NAS 管理员 SSH）：`cat /var/lib/alist/admin_password.txt`
 3. 登录（用户名 `admin`），立即在后台修改密码
 4. 后台「存储」添加网盘/本地路径；本地存储可直接填 TOS 共享文件夹路径
 

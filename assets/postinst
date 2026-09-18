@@ -2,11 +2,12 @@
 # postinst - 安装/升级后处理
 # 组件树（/usr/local/alist 下的二进制/配置/服务）随 deb 分发，
 # postinst 负责"派生状态"：属主、webui 解压、系统层注册（服务+nginx）、
-# 首装初始化（config.json 预置）、启动服务与健康检查。
+# 首装初始化（config.json 预置 + 管理员密码落盘）、启动服务与健康检查。
 # 注：经 TOS 应用中心安装时平台也会注册 init.d 服务与 nginx 配置，
 # 本脚本的操作全部幂等，两条安装路径行为一致。
-# 管理员初始化采用上游官方设计：首次启动时 AList 自动生成随机初始密码
-# 并打印到服务日志（仅 stdout，不落 log.log），systemd 收入 journal。
+# 密码方案（审核 F10 要求，已废弃"官方首启打日志"设计）：postinst 安装期
+# 用 admin set 预置随机密码并写入 root-0600 文件 —— 安装期已建号，
+# 服务首启不会再触发上游的 initial password 打印，journal 无明文密码。
 set -e
 
 APP_ID=alist
@@ -15,6 +16,7 @@ APP_USER=alist
 DATA_DIR=/var/lib/alist
 APP_PORT=15244
 MAINT_LOG=/var/log/alist-maint.log
+PASS_FILE=$DATA_DIR/admin_password.txt
 
 pkg_log() {
   mkdir -p /var/log 2>/dev/null || true
@@ -78,9 +80,26 @@ EOJ
       pkg_log postinst bootstrap "config.json 预置（127.0.0.1:$APP_PORT, site_url=/alist）"
     fi
 
-    # 7. 管理员初始化：不干预，交给上游官方流程 ——首次启动时 AList 自动
-    #    生成随机初始密码并打印到服务日志，获取方式（官方设计的入口）：
-    #    journalctl -u alist | grep -i "initial password"
+    # 7. 首装管理员密码（审核 F10：密码只落 root-0600 文件，绝不进日志）
+ #    admin set 在空数据目录上自动走 Init 流程建库建号设密（实测通过）；
+    #    安装期建号后服务首启不再触发上游的 initial password 日志打印
+    if [ ! -f "$DATA_DIR/data.db" ] && [ ! -f "$PASS_FILE" ]; then
+      ADMIN_PASS=$(LC_ALL=C tr -dc 'A-HJ-NP-Za-km-z2-9' < /dev/urandom | head -c 16)
+      if command -v runuser > /dev/null 2>&1; then
+        runuser -u $APP_USER -- "$APP_DIR/bin/alist" admin set --data "$DATA_DIR" "$ADMIN_PASS" \
+          > /dev/null 2>&1 || true
+      else
+        su -s /bin/sh -c "'$APP_DIR/bin/alist' 'admin' 'set' '--data' '$DATA_DIR' '$ADMIN_PASS'" $APP_USER \
+          > /dev/null 2>&1 || true
+      fi
+      if [ -f "$DATA_DIR/data.db" ]; then
+        # 密码仅落此文件（root 0600）；不写入维护日志/dpkg 输出，防日志泄露
+        ( umask 077; printf 'AList 初始管理员账号\nusername: admin\npassword: %s\n' "$ADMIN_PASS" > "$PASS_FILE" )
+        pkg_log postinst bootstrap "管理员初始化完成，密码写入 $PASS_FILE"
+      else
+        pkg_log postinst warn "admin set 未生成 data.db，请检查 journalctl -u alist"
+      fi
+    fi
     chown -R $APP_USER:$APP_USER "$DATA_DIR" 2>/dev/null || true
 
     # 8. 系统层注册（幂等；应用中心安装时平台也会做同样的事）
@@ -140,7 +159,7 @@ EOJ
     fi
     echo "  打开界面 : TOS 桌面 → AList 图标（新标签页打开 http://<NAS的IP>:8181/alist/）"
     echo "  登录账号 : admin"
-    echo "  初始密码 : journalctl -u alist | grep -i \"initial password\" （上游官方方式，仅首启打印）"
+    echo "  初始密码 : cat $PASS_FILE   （root 0600；登录后请在后台修改）"
     echo "  数据目录 : $DATA_DIR（数据库/配置/索引，remove 保留 / purge 删除）"
     echo "  修改配置 : 编辑 $APP_DIR/alist.env（端口/数据库/FTP 等）后 systemctl restart alist"
     echo "  端口说明 : 仅监听 127.0.0.1:$APP_PORT，不对外暴露端口（经 TOS nginx 路由访问）"

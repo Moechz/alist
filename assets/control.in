@@ -17,10 +17,9 @@ Description: AList File Manager - aggregate cloud drives with WebDAV
  .
  The web UI opens in a new browser tab via the TOS App Center route
  /alist/. The backend listens on loopback only: no external port is
- exposed. On first start AList generates the initial admin password
- itself and prints it to the service log (official upstream
- behavior); retrieve it with: journalctl -u alist | grep -i
- "initial password" (username: admin, change it after login).
+ exposed. The first-install admin password is generated automatically
+ and stored root-readable in /var/lib/alist/admin_password.txt
+ (username: admin, change it after login).
  Database, temp files and search index are stored in /var/lib/alist;
  'apt remove' keeps them, 'apt purge' deletes them.
  .

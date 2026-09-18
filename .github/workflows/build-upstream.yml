@@ -52,7 +52,9 @@ jobs:
           echo "web dist tag: $WEB_TAG"
           echo "WEB_TAG=$WEB_TAG" >> "$GITHUB_ENV"
           curl -fL "https://github.com/alist-org/alist-web/releases/download/${WEB_TAG}/dist.tar.gz" -o dist.tar.gz
-          rm -rf public && mkdir -p public
+          # 只替换 public/dist；不能删整个 public/（public.go 是 embed 声明文件）
+          rm -rf public/dist
+          mkdir -p public
           tar -xzf dist.tar.gz -C public
           test -f public/dist/index.html
 

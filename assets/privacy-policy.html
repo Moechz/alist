@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AList File Manager — Privacy Policy / 隐私政策</title>
+<style>
+body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:780px;margin:2rem auto;padding:0 1rem;line-height:1.6;color:#222}
+h1{font-size:1.5rem}h2{font-size:1.15rem;margin-top:1.6rem;border-bottom:1px solid #ddd;padding-bottom:.3rem}
+.zh{background:#f7f7f9;padding:.8rem 1rem;border-radius:6px;font-size:.92rem}
+code{background:#f0f0f2;padding:.1rem .3rem;border-radius:3px;font-size:.9em}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:.4rem .6rem;text-align:left;font-size:.92rem}
+</style>
+</head>
+<body>
+
+<h1>AList File Manager — Privacy Policy</h1>
+<p class="zh">本文档为双语隐私政策。英文版在前，中文版在后。（This document is bilingual: English first, Chinese below.）</p>
+
+<h2>1. Overview</h2>
+<p>AList File Manager is a self-hosted file aggregation program that runs <strong>entirely on your own NAS device</strong> (TerraMaster TOS 7). The application itself does <strong>not collect, transmit, or share any personal data</strong> with the publisher or any third party. There are no analytics, no telemetry, no tracking, and no advertising SDKs.</p>
+
+<h2>2. Data stored on your device</h2>
+<table>
+<tr><th>Data</th><th>Location</th><th>Purpose</th></tr>
+<tr><td>User accounts (hashed passwords, preferences)</td><td><code>/var/lib/alist/data.db</code></td><td>Local login and per-user settings</td></tr>
+<tr><td>Initial admin password</td><td><code>/var/lib/alist/admin_password.txt</code> (root-only, 0600)</td><td>One-time first-login credential; delete after changing the password</td></tr>
+<tr><td>Storage credentials you configure (OAuth/refresh tokens, keys)</td><td><code>/var/lib/alist/data.db</code></td><td>Connect the cloud drives <em>you</em> add; never leaves the device</td></tr>
+<tr><td>App configuration</td><td><code>/var/lib/alist/config.json</code>, <code>/usr/local/alist/alist.env</code></td><td>Server settings (listen address, port, database, optional services)</td></tr>
+<tr><td>Search index, logs</td><td><code>/var/lib/alist/</code></td><td>Local full-text search and troubleshooting</td></tr>
+<tr><td>Your files</td><td>The storages you connect</td><td>The content you manage; not copied elsewhere by the app</td></tr>
+</table>
+<p>All of this data stays on your device. It is never uploaded by the application to the publisher or any intermediary.</p>
+
+<h2>3. Your rights: access, correction, deletion</h2>
+<ul>
+<li><strong>Access</strong>: log in to the web UI (all settings and storage mounts are visible there), or read the local files listed above as the NAS administrator.</li>
+<li><strong>Correction</strong>: change settings in the web UI or edit <code>/usr/local/alist/alist.env</code> at any time.</li>
+<li><strong>Deletion</strong>: remove accounts or storages in the web UI; <code>apt remove</code> (or App Center uninstall) keeps data, <code>apt purge</code> deletes <code>/var/lib/alist</code> entirely. No remote copy exists anywhere because nothing was ever uploaded.</li>
+</ul>
+
+<h2>4. Third-party network access (user-initiated only)</h2>
+<p>The application contacts external services <strong>only for operations you explicitly perform</strong>:</p>
+<ul>
+<li><strong>Storages you configure</strong> (cloud drives, WebDAV/S3 servers): requests go directly from your NAS to those services to list, read, upload and download files, using the credentials you provided. Data destinations are those of the respective providers.</li>
+<li><strong>Offline downloads / link previews</strong>: only when you submit a URL; the target server receives the request directly from your NAS.</li>
+<li><strong>Nothing else</strong>: no data is sent to the publisher, no update checks phone home, no crash reporting exists.</li>
+</ul>
+
+<h2>5. Accounts and children</h2>
+<p>The application has a purely local account system (admin and optional users, including a disabled-by-default guest). It serves your LAN through the TOS web port and does not knowingly process children's data.</p>
+
+<h2>6. Changes and contact</h2>
+<p>This policy ships inside the application package (<code>/usr/local/alist/privacy-policy.html</code>, also served at <code>/alist/privacy-policy.html</code>). For questions or reports: <code>https://github.com/Moechz/alist</code> (Issues). Upstream project: <code>https://github.com/AlistGo/alist</code> (AGPL-3.0).</p>
+
+<hr>
+
+<h1>AList File Manager — 隐私政策（中文）</h1>
+
+<h2>1. 概述</h2>
+<p>AList File Manager 是完全运行在<strong>您自己的 NAS 设备</strong>（TerraMaster TOS 7）上的自托管文件聚合程序。应用本身<strong>不向发布者或任何第三方收集、传输、共享任何个人数据</strong>：无统计、无遥测、无跟踪、无广告 SDK。</p>
+
+<h2>2. 存储在您设备上的数据</h2>
+<table>
+<tr><th>数据</th><th>位置</th><th>用途</th></tr>
+<tr><td>用户账号（密码哈希、偏好）</td><td><code>/var/lib/alist/data.db</code></td><td>本地登录与用户设置</td></tr>
+<tr><td>初始管理员密码</td><td><code>/var/lib/alist/admin_password.txt</code>（仅 root，0600）</td><td>首登凭据；修改密码后可删除</td></tr>
+<tr><td>您配置的存储凭据（OAuth/刷新令牌、密钥）</td><td><code>/var/lib/alist/data.db</code></td><td>连接<strong>您自己添加</strong>的网盘；绝不离开设备</td></tr>
+<tr><td>应用配置</td><td><code>/var/lib/alist/config.json</code>、<code>/usr/local/alist/alist.env</code></td><td>服务设置（监听地址、端口、数据库、可选服务）</td></tr>
+<tr><td>搜索索引、日志</td><td><code>/var/lib/alist/</code></td><td>本地全文检索与排障</td></tr>
+<tr><td>您的文件</td><td>您连接的各存储</td><td>您管理的内容；应用不另行复制</td></tr>
+</table>
+<p>以上数据全部留在您的设备上，应用不会将其上传给发布者或任何中间方。</p>
+
+<h2>3. 您的权利：访问、更正、删除</h2>
+<ul>
+<li><strong>访问</strong>：登录网页界面（全部设置与存储挂载均可见），或以 NAS 管理员身份读取上述本地文件。</li>
+<li><strong>更正</strong>：随时在网页界面修改设置或编辑 <code>/usr/local/alist/alist.env</code>。</li>
+<li><strong>删除</strong>：在网页界面删除账号或存储；<code>apt remove</code>（或应用中心卸载）保留数据，<code>apt purge</code> 彻底删除 <code>/var/lib/alist</code>。因从未上传，任何远端都不存在副本。</li>
+</ul>
+
+<h2>4. 第三方网络访问（仅由您主动发起）</h2>
+<p>应用<strong>仅在您明确执行操作时</strong>访问外部服务：</p>
+<ul>
+<li><strong>您配置的存储</strong>（网盘、WebDAV/S3 服务器）：由您的 NAS 直接向对应服务发起请求，用于列目录、读取、上传和下载文件，使用您提供的凭据；数据目的地为各服务商自身。</li>
+<li><strong>离线下载 / 链接预览</strong>：仅在您提交 URL 时，目标服务器直接收到来自您 NAS 的请求。</li>
+<li><strong>除此之外没有其他外联</strong>：不向发布者发送任何数据、无更新检查回连、无崩溃上报。</li>
+</ul>
+
+<h2>5. 账户与儿童</h2>
+<p>应用仅具备本地账号体系（admin 与可选用户，含默认禁用的访客账号），通过 TOS 网页端口服务您的局域网；不涉及儿童数据的处理。</p>
+
+<h2>6. 变更与联系</h2>
+<p>本政策随应用包分发（<code>/usr/local/alist/privacy-policy.html</code>，亦经 <code>/alist/privacy-policy.html</code> 提供）。问题或报告请至 <code>https://github.com/Moechz/alist</code>（Issues）。上游项目：<code>https://github.com/AlistGo/alist</code>（AGPL-3.0）。</p>
+</body>
+</html>
