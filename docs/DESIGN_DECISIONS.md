@@ -96,3 +96,11 @@
 **Consequences:**
 - 真机首版验证发现 purge 后 `/usr/local/alist/alist.env` 残留（属主悬空为已删用户 uid）
 - 修复后真机复验：install→purge 全路径零残留
+
+### D-014: V6 重审 On Hold → 申请豁免，而非坑 32 位级可复现重路线
+**Decision:** 3.64.0-2 重审仅剩 V6（On Hold 非拒审，官方开放豁免通道且明列 V6 适用）。不撤件，按官方四项材料（场景技术论证 / 最小权限方案 / 安全加固 / 技术佐证）申请 V6 豁免，回信草稿 `docs/V6-EXEMPTION-REPLY.md`。
+**Consequences:**
+- 依据：Go 编译型应用唯一可运行形态即 ELF；TOS apt 无包、S8 禁安装期编译、捆 Go 工具链更糟 → 权限模型下无「无二进制」合理替代；且我们本就未分发上游预编译物，而是公开 CI 从源码 tag 构建
+- 回避了坑 32 重路线两大成本：全量位级可复现配方 + 前端（上游预构建 dist 经 go:embed 内嵌）自建；指南坑 43 已实锤「哈希 pin + 公开 CI」不构成 V6 自动通过，但豁免材料现成
+- 若豁免被拒，回退方案 = 坑 32 升级（撤件重提）
+- 豁免通过后下版仍建议加固：unit 补 `CapabilityBoundingSet=`（空集，凑齐豁免信点名的四件套）；包内 `/usr/local/alist/PROVENANCE.md` + `BUILD-INFO`（放 /usr/local，勿放 /usr/share/doc，指南坑 50）

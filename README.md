@@ -1,60 +1,106 @@
-# AList for TOS 7（TerraMaster 应用中心封装）
+# alist-for-tos
 
-[AList](https://github.com/AlistGo/alist) 是一款多网盘聚合 / 文件列表程序（Go + 内嵌前端，AGPL-3.0）：
-把本地目录、WebDAV、S3 兼容存储与数十种网盘聚合到一个网页界面，支持预览、上传下载、
-分享链接、离线下载，并内置 WebDAV 服务。本项目把它封装成 TerraMaster TOS 7 应用中心
-规范的 deb 包。
+> TerraMaster TOS 7 App Center — **Docker application** package for
+> [AList](https://github.com/AlistGo/alist).
 
-## 架构
+## What this is
 
-| 项 | 值 |
+A four-file TOS Docker application archive (`alistdocker.tar.gz`) that installs
+AList on TOS 7 through the App Center:
+
+- `config.ini` — TOS application metadata (`application_type: docker`, id `alistdocker`)
+- `alistdocker.lang` — 23-language superset (TOS requires 14)
+- `alistdocker.svg` — application icon (1921 bytes, 3 SVG elements)
+- `docker-compose.yml` — one service, image `xhofe/alist:v3.66.0`
+
+## How it works
+
+| | |
 |---|---|
-| 打开方式 | 新标签页（External Open），TOS 路由 `/alist/` |
-| 后端监听 | `127.0.0.1:15244`（仅回环，无对外端口） |
-| 反代 | TOS nginx 前缀保留转发（AList 以 `site_url=/alist` 原生跑子路径） |
-| 运行身份 | 专用非特权用户 `alist`，systemd 沙箱加固 |
-| 数据目录 | `/var/lib/alist`（数据库/配置/索引/日志；remove 保留、purge 删除） |
-| 初始密码 | 安装时自动生成，仅存 `/var/lib/alist/admin_password.txt`（root 0600；审核 F10 要求，不进日志） |
-| WebDAV | `http://<NAS>:8181/alist/dav/` |
-| 依赖 | 零运行时依赖（Go 静态二进制；`Recommends: ffmpeg` 增强） |
+| Container image | `xhofe/alist:v3.66.0` (Docker Hub, used unmodified) |
+| Open | `http://<NAS-IP>:8156/` (container port 5244) |
+| Runs as | non-root, `user: "1000:1000"` |
+| Persistent data | `/opt/alist/data` → `/Volume1/DockerAppData/alistdocker/data` |
+| Logs | `docker logs alistdocker` (stdout/stderr) |
 
-## 构建与产物
+`/opt/alist/data` (mounted from `DockerAppData/alistdocker/data`) holds `config.json` and `data.db` (SQLite) with the storage mounts and users.
+
+## Design highlights
+
+- **Non-root.** `user: "1000:1000"`; verified on real hardware (the container reports uid 1000).
+- **Entrypoint wrapper**: skips the upstream chown/su-exec and runs `alist server --data /opt/alist/data` directly as uid 1000.
+- **Fixed image tag, never `:latest`**, Docker Hub only, no `privileged`, no `network_mode: host`, and no Docker socket, no `cap_add`.
+- **Health check** probing the service on container port 5244.
+- **Deterministic build**: GNU tar with uid/gid 0 and zeroed timestamps, gzip without a timestamp, plus the review-standards self-check above.
+- **Direct binary start.** The entrypoint needs root for chown/su-exec; the wrapper runs `alist server` as uid 1000 instead.
+- **SQLite only.** Storages, users and settings live in one database in the data folder.
+
+## Privacy
+
+This application runs entirely on your NAS. It does not include analytics, telemetry or advertising SDKs, and the packaging contains no code that sends data to the packager. Data is only exchanged with the services you configure yourself (for example media servers, notification endpoints or model APIs), and only from the container. Everything the application stores lives in the application data folder described above; removing the app with its data deletes it.
+
+## Third-party components
+
+The package runs the upstream image `xhofe/alist:v3.66.0` unmodified. Its components and their licences are those of the upstream project (https://github.com/AlistGo/alist), which is distributed under **AGPL-3.0**. No upstream source code is redistributed in this repository; only the four packaging files are original work.
+
+## Runtime file manifest
+
+Everything the application writes on the NAS lives inside its own data
+directory; the container-internal `/tmp` is discarded with the container. The
+table lists what is created and how it behaves. Nothing else is written.
+
+| Path | Purpose | Created when | Growth bound | Lifecycle |
+|---|---|---|---|---|
+| `/Volume1/DockerAppData/alistdocker/data` | AList application data (everything the container writes outside /tmp) | on first start / on demand | bounded by your own data | persistent; kept on uninstall unless you ask to delete it |
+
+## Build
 
 ```bash
-make check          # 语法 + 资产静态自检
-./build.sh          # x86_64（amd64）全流程构建
-make arm64          # aarch64 构建
+scripts/build.sh                  # -> out/alistdocker.tar.gz + .sha256
+scripts/build.sh 3.66.0-2   # packaging iteration bump
+scripts/build.sh 3.66.0-1 aarch64
 ```
 
-产物（`out/`）：
+The build stages the four files, substitutes the version/platform placeholders,
+embeds `src/entrypoint.sh` into the compose file (escaping every `$` as `$$`), removes CRLF/BOM/AppleDouble, then runs
+`tools/verify.py`, a review-standards self-check (archive layout, JSON validity,
+required fields, 14+ language coverage, version consistency, Docker-Hub-only
+images, fixed tag, reserved/recommended host ports, non-root user, per-service
+healthcheck/TZ/restart, data path below the application data root, never the
+`/Volume*` wildcard, comment-free sequence blocks, `x-app-meta` position, no
+literal secrets and the SVG size/element limits).
 
-- `alist_<版本>_<arch>.deb` — 本地 apt 安装/测试
-- `alist_{x86_64,aarch64}.deb` + `.sha256` — 应用中心上架资产（Release tag = `v<完整版本>`）
-
-上游 Release 资产做 md5 + sha256 双重校验（md5 对照官方 `md5.txt`，sha256 对照 `config.env` 内 pin 值）。
-
-## 首次使用
-
-1. TOS 桌面 → AList 图标（新标签页打开 `http://<NAS>:8181/alist/`）
-2. 读取初始管理员密码（NAS 管理员 SSH）：`cat /var/lib/alist/admin_password.txt`
-3. 登录（用户名 `admin`），立即在后台修改密码
-4. 后台「存储」添加网盘/本地路径；本地存储可直接填 TOS 共享文件夹路径
-
-常用运维：
+## Local verification
 
 ```bash
-systemctl restart alist                 # 改配置后重启
-vi /usr/local/alist/alist.env           # 端口/数据库/FTP 等覆盖项（环境变量 > config.json）
-journalctl -u alist -n 50 --no-pager    # 排障
-tail -50 /var/lib/alist/log/log.log
+./TOSAppSelfTestingTool -c out/alistdocker.tar.gz   # official spec check
+bash test/install-and-verify.sh                  # on-device E2E (needs root)
 ```
 
-## 文档
+> Docker applications cannot be side-loaded through the App Center's manual
+> install page (it accepts `.deb` only); the official self-testing tool's `-i`
+> mode or `docker compose` are the only ways to install one for testing.
 
-- `docs/DESIGN_DECISIONS.md` — 设计决策台账
-- `docs/CHANGELOG.md` — 版本历史
+## Store submission checklist
 
-## 许可
+1. Public GitHub repo (code + README only).
+2. Release **tag `v3.66.0-1`**, assets `alistdocker.tar.gz` +
+   `alistdocker.tar.gz.sha256` (Docker asset naming: `<app_id>.tar.gz`, **no
+   platform suffix**).
+3. Developer platform → Add Application: ID `alistdocker`, package type Docker,
+   repository URL, architecture `x86_64`.
+4. Version Management → Add Version `3.66.0-1` → automated validation → review.
 
-上游 AList 采用 AGPL-3.0（随包附于 `/usr/share/doc/alist/copyright`）。
-本项目封装脚本与资产无额外授权要求。
+## License / branding
+
+AList is distributed by its upstream authors under **AGPL-3.0**. The container image is the official image from Docker Hub (`xhofe/alist:v3.66.0`) and is used unmodified; no upstream source code is redistributed here. This packaging is an independent community submission by Moechz and is not affiliated with the upstream project or TerraMaster.
+
+## Limitations
+
+- Some cloud drives require paid accounts or API keys to mount.
+- The generated admin password is only printed on first start; change it and keep it safe.
+- The UI is plain HTTP; use a TLS reverse proxy before exposing it to the internet.
+
+---
+
+Packaged for TOS 7 by Moechz. Upstream image used unmodified from Docker Hub.

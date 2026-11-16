@@ -1,0 +1,111 @@
+{
+  "app_id": "alistdocker",
+  "title": "AList",
+  "image": "xhofe/alist:v3.66.0",
+  "repo_name": "alist",
+  "mode": "wrapper",
+  "container_port": 5244,
+  "category": [
+    "Backup_Sync"
+  ],
+  "volumes": [
+    {
+      "host": "/Volume1/DockerAppData/alistdocker/data",
+      "container": "/opt/alist/data"
+    }
+  ],
+  "env": {
+    "TZ": "Asia/Shanghai"
+  },
+  "auth": "xhofe",
+  "upstream_url": "https://github.com/AlistGo/alist",
+  "upstream_license": "AGPL-3.0",
+  "descript": "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder.",
+  "release_note": "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder.",
+  "important": "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet.",
+  "probe": {
+    "user_in_image": "(root)",
+    "entrypoint": null,
+    "cmd": [
+      "/entrypoint.sh"
+    ],
+    "exposed_ports": [
+      5244,
+      5245
+    ],
+    "declared_volumes": [
+      "/opt/alist/data/"
+    ],
+    "image_healthcheck": [],
+    "digest": "xhofe/alist@sha256:afa909f81817770520df07515287eb3df3d4e3c6631ca28b02cbae8499149b39",
+    "architecture": "x86_64",
+    "platforms": [
+      "x86_64",
+      "aarch64"
+    ],
+    "http_client_in_image": "wget",
+    "trial_run": {
+      "ok": false,
+      "http_code": "",
+      "state": "exited",
+      "paths": [
+        "/opt"
+      ],
+      "host_port": 18000,
+      "log_tail": "chown: /opt/alist/data: Operation not permitted\nchown: /opt/alist/data: Operation not permitted\nchown: /opt/alist/alist: Operation not permitted\nchown: /opt/alist/: Operation not permitted\nchown: /opt/alist/: Operation not permitted\nsu-exec: setgroups(0): Operation not permitted",
+      "files_in_mounts": ""
+    },
+    "docker_hub": {},
+    "github": {
+      "owner": "AlistGo",
+      "repo": "alist",
+      "description": "🗂️A file list/WebDAV program that supports multiple storages, powered by Gin and Solidjs. / 一个支持多存储的文件列表/WebDAV程序，使用 Gin 和 Solidjs。",
+      "license": "AGPL-3.0",
+      "homepage": "https://alistgo.com"
+    }
+  },
+  "healthcheck": [
+    "CMD-SHELL",
+    "curl -s -o /dev/null http://127.0.0.1:5244/ || exit 1"
+  ],
+  "entrypoint_file": "src/entrypoint.sh",
+  "platform": "x86_64",
+  "user": "1000:1000",
+  "publisher": "Moechz",
+  "compose_project": "alistdocker",
+  "github_repo": "alist",
+  "upstream_version": "3.66.0",
+  "release_tag_prefix": "v",
+  "version": "3.66.0-1",
+  "help": "https://github.com/Moechz/alist/issues",
+  "official": "https://github.com/AlistGo/alist",
+  "license": "AGPL-3.0",
+  "docker_socket": false,
+  "group_add": [],
+  "host_port": 8156,
+  "healthcheck_start_period": "45s",
+  "wrapper_note": "the image entrypoint chowns the app directory and drops privileges with su-exec,\nwhich both require root. This wrapper starts the alist binary directly as uid\n1000 with the data folder on the mounted volume.",
+  "wrapper_note_readme": "- **Entrypoint wrapper**: skips the upstream chown/su-exec and runs `alist server --data /opt/alist/data` directly as uid 1000.",
+  "translations": {
+    "zh-cn": {
+      "descript": "AList 把多个网盘统一到一个网页文件列表：挂载阿里云盘、百度网盘、OneDrive、Google Drive、S3、WebDAV 或本地目录，然后在一个页面里浏览、预览、下载、分享，还支持 WebDAV 访问与按用户分配权限。SQLite 数据库与配置都保存在应用数据目录。",
+      "important": "需要 DockerEngine（缺失时应用中心会自动安装）。首次启动会生成管理员密码并打印在容器日志里（docker logs alistdocker），用户名是 admin——登录后请尽快修改。配置与 SQLite 数据库保存在 DockerAppData/alistdocker/data。在「管理 → 存储」里挂载远程盘。界面为纯 HTTP，暴露到公网前请配置带 TLS 的反向代理。",
+      "release_note": "1. 首个版本：基于 Docker Hub 的 AList 3.66.0，以非 root 容器运行。统一多个网盘的网页文件列表，支持 WebDAV；数据库与配置保存在应用数据目录。"
+    },
+    "zh-hk": {
+      "descript": "AList 把多個網盤統一到一個網頁檔案列表：掛載阿里雲盤、百度網盤、OneDrive、Google Drive、S3、WebDAV 或本機目錄，然後在一個頁面裡瀏覽、預覽、下載、分享，還支援 WebDAV 存取與按使用者分配權限。SQLite 資料庫與設定都保存在應用資料目錄。",
+      "important": "需要 DockerEngine（缺少時應用中心會自動安裝）。首次啟動會產生管理員密碼並印在容器日誌裡（docker logs alistdocker），使用者名稱是 admin——登入後請盡快修改。設定與 SQLite 資料庫保存在 DockerAppData/alistdocker/data。在「管理 → 儲存」裡掛載遠端磁碟。介面為純 HTTP，公開到互聯網前請配置帶 TLS 的反向代理。",
+      "release_note": "1. 首個版本：基於 Docker Hub 的 AList 3.66.0，以非 root 容器運行。統一多個網盤的網頁檔案列表，支援 WebDAV；資料庫與設定保存在應用資料目錄。"
+    }
+  },
+  "data_notes": "`/opt/alist/data` (mounted from `DockerAppData/alistdocker/data`) holds `config.json` and `data.db` (SQLite) with the storage mounts and users.",
+  "design_notes": [
+    "**Direct binary start.** The entrypoint needs root for chown/su-exec; the wrapper runs `alist server` as uid 1000 instead.",
+    "**SQLite only.** Storages, users and settings live in one database in the data folder."
+  ],
+  "limitations": [
+    "- Some cloud drives require paid accounts or API keys to mount.",
+    "- The generated admin password is only printed on first start; change it and keep it safe.",
+    "- The UI is plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+  ]
+}

@@ -1,0 +1,195 @@
+# ===========================================================================
+# Multilingual file for the TOS 7 Docker application "alistdocker".
+# File name MUST be: <appid>.lang.  23-language superset (14 required by TOS).
+# The App Center picks the text matching the user's device language;
+# untranslated nodes fall back to English, which the official guide allows.
+# Fields: name (app title), auth (upstream author), descript (up to 512
+# chars), release_note, important (up to 512 chars).
+# Translations come from tosapp.json "translations"; run
+#   tosdocker lang <app>          to re-render this file
+#   tosdocker translate <app>     to see what still needs translating
+# ===========================================================================
+[en-us]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[zh-cn]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList 把多个网盘统一到一个网页文件列表：挂载阿里云盘、百度网盘、OneDrive、Google Drive、S3、WebDAV 或本地目录，然后在一个页面里浏览、预览、下载、分享，还支持 WebDAV 访问与按用户分配权限。SQLite 数据库与配置都保存在应用数据目录。"
+release_note = "1. 首个版本：基于 Docker Hub 的 AList 3.66.0，以非 root 容器运行。统一多个网盘的网页文件列表，支持 WebDAV；数据库与配置保存在应用数据目录。"
+important    = "需要 DockerEngine（缺失时应用中心会自动安装）。首次启动会生成管理员密码并打印在容器日志里（docker logs alistdocker），用户名是 admin——登录后请尽快修改。配置与 SQLite 数据库保存在 DockerAppData/alistdocker/data。在「管理 → 存储」里挂载远程盘。界面为纯 HTTP，暴露到公网前请配置带 TLS 的反向代理。"
+
+[zh-hk]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList 把多個網盤統一到一個網頁檔案列表：掛載阿里雲盤、百度網盤、OneDrive、Google Drive、S3、WebDAV 或本機目錄，然後在一個頁面裡瀏覽、預覽、下載、分享，還支援 WebDAV 存取與按使用者分配權限。SQLite 資料庫與設定都保存在應用資料目錄。"
+release_note = "1. 首個版本：基於 Docker Hub 的 AList 3.66.0，以非 root 容器運行。統一多個網盤的網頁檔案列表，支援 WebDAV；資料庫與設定保存在應用資料目錄。"
+important    = "需要 DockerEngine（缺少時應用中心會自動安裝）。首次啟動會產生管理員密碼並印在容器日誌裡（docker logs alistdocker），使用者名稱是 admin——登入後請盡快修改。設定與 SQLite 資料庫保存在 DockerAppData/alistdocker/data。在「管理 → 儲存」裡掛載遠端磁碟。介面為純 HTTP，公開到互聯網前請配置帶 TLS 的反向代理。"
+
+[fr-fr]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[de-de]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[it-it]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[es-es]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[hu-hu]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[ja-jp]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[ko-kr]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[pl-pl]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[ru-ru]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[tr-tr]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[pt-pt]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[ar-sa]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[cs-cz]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[he-il]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[id-id]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[nb-no]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[nl-nl]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[sv-se]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[th-th]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
+[vi-vn]
+name         = "AList"
+auth         = "xhofe"
+version      = "@@VERSION@@"
+descript     = "AList puts many cloud drives behind one web file list: mount Aliyun Drive, Baidu Netdisk, OneDrive, Google Drive, S3, WebDAV or a local folder, then browse, preview, download and share them from one page, with optional WebDAV access and per-user permissions. Its SQLite database and configuration stay in the application data folder."
+release_note = "1. First release: AList 3.66.0 from Docker Hub as a non-root container. One web file list in front of many cloud drives with WebDAV access; database and config in the application data folder."
+important    = "Requires DockerEngine (installed automatically if missing). The first start generates an admin password and prints it in the container log (docker logs alistdocker); username is admin - change it after logging in. Configuration and the SQLite database live in DockerAppData/alistdocker/data. Mount remote drives under Manage -> Storage. Plain HTTP; use a TLS reverse proxy before exposing it to the internet."
+
