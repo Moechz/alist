@@ -22,3 +22,39 @@
 - 修复图标资产：官方 logo 首次下载被截断（非法 XML → TOS 桌面渲染灰白占位块），重新拉取完整版并注入 viewBox；自检新增 SVG 合法性断言（XML 可解析 + viewBox + fill/path 完整性）防复发
 - 开发者署名归上游：应用中心展示的 publisher/auth 改为 “AList Team”；deb Maintainer 保持打包者（dpkg 语义：包维护人），描述内注明上游作者与打包者分工
 - 双架构产物：x86_64 / aarch64（md5+sha256 双重校验官方 tarball）
+
+## 3.66.0-1 — 2026-11-19
+
+### Changed（针对 3.64.0-4 审核报告的 11 项）
+- **T1（CVE）**：上游 **3.64.0 → 3.66.0**（当前最新 release，2026-10-21）；二进制仍由本仓库
+  公开 CI 从上游 tag 源码构建（静态 musl、无 UPX），`config.env` 的两个 sha256 pin 同步更新。
+  审计链：上游 tag v3.66.0 → `.github/workflows/build-upstream.yml` → Actions run → Release `build-v3.66.0`。
+- **P1（品牌一致性）**：`config.ini.publisher` 与 `DEBIAN/control.Maintainer` 统一为
+  **Moechz**（原 publisher 为 "AList Team"，与 Maintainer 无共同标识）；`Maintainer` 邮箱改为
+  可追溯的 `moechz@163.com`。上游作者仍以 lang `auth`="AList Team"、`control` Description 与
+  `NOTICE.md` 署名体现。build.sh 新增构建期门禁：publisher 必须等于 Maintainer 且不是占位符。
+- **F11（卸载残留）**：`postrm` 改为 `remove` 与 `purge` 都完整清理（数据库/配置/密码文件/日志/
+  systemd 单元/nginx 路由/专用用户/维护日志），与官方 Package Specification 生命周期表
+  "postrm → Clean up user, data, residual files" 一致；`upgrade|failed-upgrade|…` 路径仍严格保留数据。
+  store 文案（14 语 `important`）与 control Description 同步写明「卸载会删除数据，先备份」。
+- **S11（权限最小化）**：build.sh 固定 `umask 022` 并在 stage 阶段显式归一化权限
+  （公开文件 0644、二进制 0755、目录 0755），新增「包内不得存在任意用户可写文件」门禁；
+  运行期凭据仍为 config.json 0640 / admin_password.txt 0600。
+- **C4（隐私政策不完整）**：包内 `privacy-policy.html` 重写为中英双语完整政策，显式覆盖
+  保留期、用户权利、安全措施、第三方共享/API 披露与删除渠道；仓库 `PRIVACY.md` 同步重写
+  （原先误写为 docker 变体的 `/Volume1/DockerAppData/alistdocker` 路径）。
+- **C8（未披露第三方 API）**：政策 §7 给出逐项表格（服务商 / 端点主机示例 / 发送的数据 /
+  目的地与区域），覆盖阿里云盘、百度网盘、139/189/123/115/迅雷/腾讯、OneDrive、Google Drive、
+  Dropbox/pCloud、S3/Azure Blob、WebDAV/FTP/SFTP、离线下载/远程上传、手动更新检查（GitHub），
+  并明确默认不主动外连、无遥测。
+- **C2（知识产权/许可）**：新增 `LICENSE`（打包部分 MIT）；`NOTICE.md` 重写：AGPL-3.0 上游、
+  源码构建链路与 corresponding source 说明、包内组件许可表、商标与图标声明、
+  「publisher == Maintainer」责任主体段落。
+- **F22（webui.bz2）**：包内已含 `webui.bz2`（占位入口页，uid/gid=0），verify 继续断言；
+  本次同时把隐私页置为 0644，避免 TOS nginx 非 root worker 读取时 403。
+
+### Verified
+- 官方 `TOSAppSelfTestingTool -c`（stage 目录）通过；`./build.sh verify` 全绿（含新增 P1/S11/F11 门禁）。
+- 真机（本机 TOS 7）：`dpkg -i` 安装/升级、`systemctl active+enabled`、非 root 进程、
+  仅 127.0.0.1:15244 监听、`/alist/` 200、隐私页 200（含五要素关键词）、WebDAV 401、
+  生成密码登录 200、升级保留数据、`dpkg --remove` 后零残留。

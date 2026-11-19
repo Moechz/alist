@@ -5,92 +5,178 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AList File Manager — Privacy Policy / 隐私政策</title>
 <style>
-body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:780px;margin:2rem auto;padding:0 1rem;line-height:1.6;color:#222}
+body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:820px;margin:2rem auto;padding:0 1rem;line-height:1.6;color:#222}
 h1{font-size:1.5rem}h2{font-size:1.15rem;margin-top:1.6rem;border-bottom:1px solid #ddd;padding-bottom:.3rem}
+h3{font-size:1rem;margin-top:1.1rem}
 .zh{background:#f7f7f9;padding:.8rem 1rem;border-radius:6px;font-size:.92rem}
 code{background:#f0f0f2;padding:.1rem .3rem;border-radius:3px;font-size:.9em}
-table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:.4rem .6rem;text-align:left;font-size:.92rem}
+table{border-collapse:collapse;width:100%;margin:.4rem 0}
+td,th{border:1px solid #ccc;padding:.4rem .6rem;text-align:left;font-size:.92rem;vertical-align:top}
+th{background:#f5f5f7}
+.meta{color:#666;font-size:.9rem}
 </style>
 </head>
 <body>
 
 <h1>AList File Manager — Privacy Policy</h1>
-<p class="zh">本文档为双语隐私政策。英文版在前，中文版在后。（This document is bilingual: English first, Chinese below.）</p>
+<p class="meta">Version 3.66.0 · Last updated: 19 November 2026 · Publisher: Moechz (moechz@163.com)</p>
+<p class="zh">本文档为中英双语隐私政策：英文版在前，中文版在后，两版内容一致。</p>
 
 <h2>1. Overview</h2>
-<p>AList File Manager is a self-hosted file aggregation program that runs <strong>entirely on your own NAS device</strong> (TerraMaster TOS 7). The application itself does <strong>not collect, transmit, or share any personal data</strong> with the publisher or any third party. There are no analytics, no telemetry, no tracking, and no advertising SDKs.</p>
+<p>AList File Manager is a self-hosted file aggregation program that runs <strong>entirely on your own NAS device</strong> (TerraMaster TOS 7). The application itself does <strong>not collect, transmit or share any personal data</strong> with the publisher or any third party. There is no analytics, no telemetry, no tracking, no advertising SDK and no crash reporting. The developer operates no server in this path and cannot see your data.</p>
 
-<h2>2. Data stored on your device</h2>
+<h2>2. What data is processed and where it is stored</h2>
 <table>
 <tr><th>Data</th><th>Location</th><th>Purpose</th></tr>
-<tr><td>User accounts (hashed passwords, preferences)</td><td><code>/var/lib/alist/data.db</code></td><td>Local login and per-user settings</td></tr>
-<tr><td>Initial admin password</td><td><code>/var/lib/alist/admin_password.txt</code> (root-only, 0600)</td><td>One-time first-login credential; delete after changing the password</td></tr>
-<tr><td>Storage credentials you configure (OAuth/refresh tokens, keys)</td><td><code>/var/lib/alist/data.db</code></td><td>Connect the cloud drives <em>you</em> add; never leaves the device</td></tr>
-<tr><td>App configuration</td><td><code>/var/lib/alist/config.json</code>, <code>/usr/local/alist/alist.env</code></td><td>Server settings (listen address, port, database, optional services)</td></tr>
-<tr><td>Search index, logs</td><td><code>/var/lib/alist/</code></td><td>Local full-text search and troubleshooting</td></tr>
-<tr><td>Your files</td><td>The storages you connect</td><td>The content you manage; not copied elsewhere by the app</td></tr>
+<tr><td>User accounts (usernames, hashed passwords, preferences)</td><td><code>/var/lib/alist/data.db</code></td><td>Local login and per-user settings</td></tr>
+<tr><td>Storage credentials you configure (OAuth/refresh tokens, access keys, WebDAV/S3/FTP passwords)</td><td><code>/var/lib/alist/data.db</code></td><td>Connect the storages <em>you</em> add; never uploaded to the publisher</td></tr>
+<tr><td>Initial administrator password</td><td><code>/var/lib/alist/admin_password.txt</code> (root-only, mode 0600)</td><td>One-time first-login credential; delete it after changing the password</td></tr>
+<tr><td>Server configuration</td><td><code>/var/lib/alist/config.json</code> (0640), <code>/usr/local/alist/alist.env</code></td><td>Listen address, port, database, optional FTP/SFTP/S3 services</td></tr>
+<tr><td>Search index, temporary files, logs</td><td><code>/var/lib/alist/</code></td><td>Local full-text search, upload staging and troubleshooting</td></tr>
+<tr><td>Share links served by the app</td><td>generated from <code>/var/lib/alist/data.db</code></td><td>Files you deliberately publish from your own NAS</td></tr>
+<tr><td>Your files</td><td>The storages you connect (local folders, WebDAV, S3, cloud drives)</td><td>The content you manage; not copied anywhere by the app</td></tr>
 </table>
-<p>All of this data stays on your device. It is never uploaded by the application to the publisher or any intermediary.</p>
+<p>All of this stays on the device. Nothing is uploaded to the publisher or to any intermediary.</p>
 
-<h2>3. Your rights: access, correction, deletion</h2>
+<h2>3. Retention period</h2>
 <ul>
-<li><strong>Access</strong>: log in to the web UI (all settings and storage mounts are visible there), or read the local files listed above as the NAS administrator.</li>
-<li><strong>Correction</strong>: change settings in the web UI or edit <code>/usr/local/alist/alist.env</code> at any time.</li>
-<li><strong>Deletion</strong>: remove accounts or storages in the web UI; <code>apt remove</code> (or App Center uninstall) keeps data, <code>apt purge</code> deletes <code>/var/lib/alist</code> entirely. No remote copy exists anywhere because nothing was ever uploaded.</li>
+<li><strong>No automatic expiry.</strong> The database, configuration, search index and logs stay in <code>/var/lib/alist</code> until you delete them or uninstall the application.</li>
+<li><strong>Uninstalling deletes the data.</strong> In this version an uninstall (App Center “Uninstall”, <code>dpkg --remove</code>, or <code>apt remove</code>) removes <code>/var/lib/alist</code> completely, because the package specification requires uninstall to leave no residual data. <strong>Back up <code>/var/lib/alist</code> before uninstalling</strong> if you want to keep your library.</li>
+<li><strong>Upgrading keeps the data.</strong> Installing a newer version only stops and restarts the service; the database is migrated in place and preserved.</li>
+<li><strong>Initial password file</strong> — retained until you delete it or uninstall; it is root-readable only (0600).</li>
+<li><strong>Logs</strong> — the service logs to the system journal (governed by the NAS journal rotation settings, not by this package). The maintenance log <code>/var/log/alist-maint.log</code> records install/uninstall steps and is removed on uninstall.</li>
+<li><strong>Website (moechz.com)</strong> — unrelated to this application; see <a href="https://www.moechz.com/privacy.html">www.moechz.com/privacy.html</a>.</li>
 </ul>
 
-<h2>4. Third-party network access (user-initiated only)</h2>
-<p>The application contacts external services <strong>only for operations you explicitly perform</strong>:</p>
+<h2>4. Your rights</h2>
 <ul>
-<li><strong>Storages you configure</strong> (cloud drives, WebDAV/S3 servers): requests go directly from your NAS to those services to list, read, upload and download files, using the credentials you provided. Data destinations are those of the respective providers.</li>
-<li><strong>Offline downloads / link previews</strong>: only when you submit a URL; the target server receives the request directly from your NAS.</li>
-<li><strong>Nothing else</strong>: no data is sent to the publisher, no update checks phone home, no crash reporting exists.</li>
+<li><strong>Access / export</strong> — log in to the web UI (all storages, users and settings are visible there), copy <code>/var/lib/alist</code> as the NAS administrator, or use AList's own API/WebDAV export paths.</li>
+<li><strong>Correction</strong> — change settings in the web UI or edit <code>/usr/local/alist/alist.env</code>, then restart the service.</li>
+<li><strong>Deletion</strong> — delete accounts, storages and share links in the web UI; remove everything with an uninstall (see §5) or <code>rm -rf /var/lib/alist</code>.</li>
+<li><strong>Restriction</strong> — per-storage visibility and per-user permissions in the UI; the guest account is disabled by default and the backend listens on loopback only.</li>
 </ul>
 
-<h2>5. Accounts and children</h2>
-<p>The application has a purely local account system (admin and optional users, including a disabled-by-default guest). It serves your LAN through the TOS web port and does not knowingly process children's data.</p>
+<h2>5. Deletion channel</h2>
+<ul>
+<li><strong>Self-service (immediate)</strong> — App Center “Uninstall” or <code>dpkg --remove alist</code> deletes the database, configuration, password file, logs, service registration and the dedicated user. Removing the folder <code>/var/lib/alist</code> deletes the data without uninstalling.</li>
+<li><strong>E-mail</strong> — <a href="mailto:moechz@163.com">moechz@163.com</a> (subject “AList data request”) for questions or requests about the package, the listing or the publishing records; a reply follows within 30 days. The developer holds no copy of your data, so deletion on your NAS is complete by itself.</li>
+<li><strong>Issues</strong> — <a href="https://github.com/Moechz/alist/issues">github.com/Moechz/alist/issues</a>.</li>
+</ul>
 
-<h2>6. Changes and contact</h2>
-<p>This policy ships inside the application package (<code>/usr/local/alist/privacy-policy.html</code>, also served at <code>/alist/privacy-policy.html</code>). For questions or reports: <code>https://github.com/Moechz/alist</code> (Issues). Upstream project: <code>https://github.com/AlistGo/alist</code> (AGPL-3.0).</p>
+<h2>6. Security measures</h2>
+<ul>
+<li>The service runs as the dedicated unprivileged system user <code>alist</code> (no shell, no home directory), never as root.</li>
+<li>systemd sandbox: <code>NoNewPrivileges=true</code>, <code>ProtectSystem=strict</code>, <code>ProtectHome=true</code>, <code>PrivateTmp=true</code>, <code>ProtectKernelTunables/Modules/Logs</code>, <code>ProtectControlGroups</code>, <code>ProtectClock</code>, <code>ProtectHostname</code>, <code>ReadWritePaths=/var/lib/alist</code>, <code>UMask=0027</code>, <code>LimitNOFILE=65536</code>.</li>
+<li>The backend listens on <strong>127.0.0.1 only</strong> (no port is exposed to the LAN); access goes through the TOS web server route <code>/alist/</code> with the platform's authentication and TLS.</li>
+<li>Credential files are minimal: <code>config.json</code> 0640, <code>admin_password.txt</code> 0600 root-only; package files are not world-writable.</li>
+<li>Passwords are stored as hashes; share links use random tokens and can be revoked in the UI.</li>
+<li>If you enable FTP/SFTP/S3 listeners in <code>alist.env</code>, you are responsible for their credentials, ports and firewall rules.</li>
+</ul>
+
+<h2>7. Third-party network access and API disclosure</h2>
+<p>The application makes network requests <strong>only for operations you initiate</strong>. Every storage backend sends the credentials you entered and the file operations you perform directly from your NAS to the provider you chose. No data is sent to the publisher; there is no telemetry and no automatic phone-home.</p>
+<table>
+<tr><th>Storage / feature you enable</th><th>Endpoint called (host examples)</th><th>Data sent</th><th>Destination / region</th></tr>
+<tr><td>Aliyun Drive</td><td><code>api.alipan.com</code>, <code>openapi.alipan.com</code></td><td>OAuth access/refresh token, file list/read/write requests</td><td>Alibaba Cloud, mainland China</td></tr>
+<tr><td>Baidu Netdisk</td><td><code>pan.baidu.com</code>, <code>photo.baidu.com</code></td><td>access token, file operations</td><td>Baidu, mainland China</td></tr>
+<tr><td>China Mobile Cloud (139), 189 Cloud, 123Pan, 115, Xunlei, Tencent Cloud disk</td><td><code>mopan.sc.189.cn</code>, <code>api.cloud.189.cn</code>, <code>yun.123pan.com</code>, <code>proapi.115.com</code>, <code>api-pan.xunlei.com</code>, <code>api.vs.tencent.com</code></td><td>credentials you enter, file metadata and transfers</td><td>the respective provider, mainland China</td></tr>
+<tr><td>Microsoft OneDrive / SharePoint</td><td><code>graph.microsoft.com</code>, <code>login.microsoftonline.com</code></td><td>OAuth token, file operations</td><td>Microsoft, region determined by your tenant</td></tr>
+<tr><td>Google Drive / Google Photos</td><td><code>www.googleapis.com</code>, <code>photoslibrary.googleapis.com</code></td><td>OAuth token, file operations</td><td>Google, global (US/EU data centres)</td></tr>
+<tr><td>Dropbox / pCloud / other drives</td><td><code>api.dropboxapi.com</code>, <code>my.pcloud.com</code>, …</td><td>credentials, file operations</td><td>the respective provider (EU/US, per provider policy)</td></tr>
+<tr><td>S3-compatible object storage / Azure Blob</td><td>the endpoint you configure, e.g. <code>s3.amazonaws.com</code>, <code>&lt;account&gt;.blob.core.windows.net</code></td><td>access key/secret you enter, object operations</td><td>the region/account you configure</td></tr>
+<tr><td>WebDAV / FTP / SFTP server you add</td><td>the address you enter (normally your LAN)</td><td>username/password, file operations</td><td>that server</td></tr>
+<tr><td>Offline download, link preview, remote upload by URL</td><td>the URL you submit</td><td>an HTTP request for that URL; the target server sees your NAS IP</td><td>the target server you chose</td></tr>
+<tr><td>Update check (administrator only, manual)</td><td><code>api.github.com</code>, <code>github.com</code> (optionally a GitHub proxy you configure: <code>gh-proxy.com</code>, <code>ghproxy.net</code>)</td><td>a version query — no personal data, no identifiers</td><td>GitHub, US (or the proxy you chose)</td></tr>
+<tr><td>ffmpeg previews / thumbnails (optional, local)</td><td>no network access</td><td>—</td><td>runs on your NAS</td></tr>
+</table>
+<p>Disable or remove any storage/integration in the web UI and it stops being called. Nothing else in this package contacts the network on its own.</p>
+
+<h2>8. Accounts and children</h2>
+<p>The application has a purely local account system (an administrator plus optional users; the guest account is disabled by default). It is a self-hosted utility, not directed at children and does not knowingly process children's data.</p>
+
+<h2>9. Changes and contact</h2>
+<p>This policy ships inside the application package (<code>/usr/local/alist/privacy-policy.html</code>), is served by the app at <code>/alist/privacy-policy.html</code>, and is also published at <a href="https://github.com/Moechz/alist/blob/main/PRIVACY.md">github.com/Moechz/alist/PRIVACY.md</a>. Material changes are reflected in the “Last updated” date.</p>
+<p>Contact: <a href="mailto:moechz@163.com">moechz@163.com</a> · Publisher: Moechz · Upstream project: <a href="https://github.com/AlistGo/alist">AlistGo/alist</a> (AGPL-3.0).</p>
 
 <hr>
 
 <h1>AList File Manager — 隐私政策（中文）</h1>
+<p class="meta">版本 3.66.0 · 最后更新：2026 年 11 月 19 日 · 发布者：Moechz（moechz@163.com）</p>
 
 <h2>1. 概述</h2>
-<p>AList File Manager 是完全运行在<strong>您自己的 NAS 设备</strong>（TerraMaster TOS 7）上的自托管文件聚合程序。应用本身<strong>不向发布者或任何第三方收集、传输、共享任何个人数据</strong>：无统计、无遥测、无跟踪、无广告 SDK。</p>
+<p>AList File Manager 是完全运行在<strong>您自己的 NAS 设备</strong>（TerraMaster TOS 7）上的自托管文件聚合程序。应用本身<strong>不向发布者或任何第三方收集、传输、共享任何个人数据</strong>：无统计、无遥测、无跟踪、无广告 SDK、无崩溃上报。开发者在整条链路上没有任何服务器，也无法看到您的数据。</p>
 
-<h2>2. 存储在您设备上的数据</h2>
+<h2>2. 处理哪些数据、存在哪里</h2>
 <table>
 <tr><th>数据</th><th>位置</th><th>用途</th></tr>
-<tr><td>用户账号（密码哈希、偏好）</td><td><code>/var/lib/alist/data.db</code></td><td>本地登录与用户设置</td></tr>
-<tr><td>初始管理员密码</td><td><code>/var/lib/alist/admin_password.txt</code>（仅 root，0600）</td><td>首登凭据；修改密码后可删除</td></tr>
-<tr><td>您配置的存储凭据（OAuth/刷新令牌、密钥）</td><td><code>/var/lib/alist/data.db</code></td><td>连接<strong>您自己添加</strong>的网盘；绝不离开设备</td></tr>
-<tr><td>应用配置</td><td><code>/var/lib/alist/config.json</code>、<code>/usr/local/alist/alist.env</code></td><td>服务设置（监听地址、端口、数据库、可选服务）</td></tr>
-<tr><td>搜索索引、日志</td><td><code>/var/lib/alist/</code></td><td>本地全文检索与排障</td></tr>
-<tr><td>您的文件</td><td>您连接的各存储</td><td>您管理的内容；应用不另行复制</td></tr>
+<tr><td>用户账号（用户名、口令散列、偏好）</td><td><code>/var/lib/alist/data.db</code></td><td>本地登录与用户设置</td></tr>
+<tr><td>您配置的存储凭据（OAuth/刷新令牌、访问密钥、WebDAV/S3/FTP 口令）</td><td><code>/var/lib/alist/data.db</code></td><td>连接<strong>您自己添加</strong>的存储；不会上传给发布者</td></tr>
+<tr><td>初始管理员密码</td><td><code>/var/lib/alist/admin_password.txt</code>（仅 root，0600）</td><td>首登一次性凭据；改密后建议删除</td></tr>
+<tr><td>服务配置</td><td><code>/var/lib/alist/config.json</code>（0640）、<code>/usr/local/alist/alist.env</code></td><td>监听地址、端口、数据库、可选 FTP/SFTP/S3 服务</td></tr>
+<tr><td>搜索索引、临时文件、日志</td><td><code>/var/lib/alist/</code></td><td>本地全文检索、上传暂存与排障</td></tr>
+<tr><td>应用提供的分享链接</td><td>由 <code>/var/lib/alist/data.db</code> 生成</td><td>您主动从自己 NAS 公开的文件</td></tr>
+<tr><td>您的文件</td><td>您连接的各存储（本地目录、WebDAV、S3、网盘）</td><td>您管理的内容；应用不另行复制</td></tr>
 </table>
-<p>以上数据全部留在您的设备上，应用不会将其上传给发布者或任何中间方。</p>
+<p>以上数据全部留在设备上，应用不会将其上传给发布者或任何中间方。</p>
 
-<h2>3. 您的权利：访问、更正、删除</h2>
+<h2>3. 保留期限</h2>
 <ul>
-<li><strong>访问</strong>：登录网页界面（全部设置与存储挂载均可见），或以 NAS 管理员身份读取上述本地文件。</li>
-<li><strong>更正</strong>：随时在网页界面修改设置或编辑 <code>/usr/local/alist/alist.env</code>。</li>
-<li><strong>删除</strong>：在网页界面删除账号或存储；<code>apt remove</code>（或应用中心卸载）保留数据，<code>apt purge</code> 彻底删除 <code>/var/lib/alist</code>。因从未上传，任何远端都不存在副本。</li>
+<li><strong>无自动过期。</strong>数据库、配置、搜索索引与日志保存在 <code>/var/lib/alist</code>，直到您删除或卸载应用。</li>
+<li><strong>卸载会删除数据。</strong>本版本中，卸载（应用中心「卸载」、<code>dpkg --remove</code> 或 <code>apt remove</code>）会完整删除 <code>/var/lib/alist</code>——因为包规范要求卸载后不留残余数据。<strong>若需保留文件库，请在卸载前备份 <code>/var/lib/alist</code></strong>。</li>
+<li><strong>升级会保留数据。</strong>安装新版本只停服务并重启，数据库就地迁移并保留。</li>
+<li><strong>初始密码文件</strong>——保留到您删除或卸载；仅 root 可读（0600）。</li>
+<li><strong>日志</strong>——服务日志写入系统 journal（由 NAS 的 journal 轮转策略管理）；维护日志 <code>/var/log/alist-maint.log</code> 记录安装/卸载步骤，卸载时一并删除。</li>
+<li><strong>网站（moechz.com）</strong>——与本应用无关，见 <a href="https://www.moechz.com/privacy.html">www.moechz.com/privacy.html</a>。</li>
 </ul>
 
-<h2>4. 第三方网络访问（仅由您主动发起）</h2>
-<p>应用<strong>仅在您明确执行操作时</strong>访问外部服务：</p>
+<h2>4. 您的权利</h2>
 <ul>
-<li><strong>您配置的存储</strong>（网盘、WebDAV/S3 服务器）：由您的 NAS 直接向对应服务发起请求，用于列目录、读取、上传和下载文件，使用您提供的凭据；数据目的地为各服务商自身。</li>
-<li><strong>离线下载 / 链接预览</strong>：仅在您提交 URL 时，目标服务器直接收到来自您 NAS 的请求。</li>
-<li><strong>除此之外没有其他外联</strong>：不向发布者发送任何数据、无更新检查回连、无崩溃上报。</li>
+<li><strong>访问/导出</strong>——登录网页界面（存储、用户、设置均可见）；以 NAS 管理员身份复制 <code>/var/lib/alist</code>；或使用 AList 自带的 API/WebDAV 导出路径。</li>
+<li><strong>更正</strong>——在网页界面修改设置，或编辑 <code>/usr/local/alist/alist.env</code> 后重启服务。</li>
+<li><strong>删除</strong>——在网页界面删除账号、存储与分享链接；卸载（见 §5）或 <code>rm -rf /var/lib/alist</code> 可清除全部数据。</li>
+<li><strong>限制</strong>——界面中按存储设置可见性与用户权限；访客账号默认禁用；后端仅监听回环地址。</li>
 </ul>
 
-<h2>5. 账户与儿童</h2>
-<p>应用仅具备本地账号体系（admin 与可选用户，含默认禁用的访客账号），通过 TOS 网页端口服务您的局域网；不涉及儿童数据的处理。</p>
+<h2>5. 删除渠道</h2>
+<ul>
+<li><strong>自助（立即生效）</strong>——应用中心「卸载」或 <code>dpkg --remove alist</code> 会删除数据库、配置、密码文件、日志、服务注册与专用用户；直接删除 <code>/var/lib/alist</code> 目录即可在不卸载的情况下清除数据。</li>
+<li><strong>邮件</strong>——<a href="mailto:moechz@163.com">moechz@163.com</a>（主题「AList data request」）：用于就本包、商店条目或发布记录提问，30 天内答复。开发者不持有您数据的任何副本，因此您 NAS 上的删除即为彻底删除。</li>
+<li><strong>Issue</strong>——<a href="https://github.com/Moechz/alist/issues">github.com/Moechz/alist/issues</a>。</li>
+</ul>
 
-<h2>6. 变更与联系</h2>
-<p>本政策随应用包分发（<code>/usr/local/alist/privacy-policy.html</code>，亦经 <code>/alist/privacy-policy.html</code> 提供）。问题或报告请至 <code>https://github.com/Moechz/alist</code>（Issues）。上游项目：<code>https://github.com/AlistGo/alist</code>（AGPL-3.0）。</p>
+<h2>6. 安全措施</h2>
+<ul>
+<li>服务以专用非特权系统用户 <code>alist</code> 运行（无 shell、无家目录），绝不以 root 运行。</li>
+<li>systemd 沙箱：<code>NoNewPrivileges=true</code>、<code>ProtectSystem=strict</code>、<code>ProtectHome=true</code>、<code>PrivateTmp=true</code>、内核参数/模块/日志保护、<code>ProtectControlGroups</code>、<code>ProtectClock</code>、<code>ProtectHostname</code>、<code>ReadWritePaths=/var/lib/alist</code>、<code>UMask=0027</code>、<code>LimitNOFILE=65536</code>。</li>
+<li>后端<strong>仅监听 127.0.0.1</strong>（不向局域网另外开放端口），访问经 TOS 网页服务的 <code>/alist/</code> 路由，沿用平台的身份认证与 TLS。</li>
+<li>凭据文件权限最小化：<code>config.json</code> 0640、<code>admin_password.txt</code> 0600（仅 root）；包内文件不可被任意用户写入。</li>
+<li>口令以散列形式存储；分享链接使用随机令牌，可随时在界面撤销。</li>
+<li>若您在 <code>alist.env</code> 中启用 FTP/SFTP/S3 监听，其凭据、端口与防火墙规则由您负责。</li>
+</ul>
+
+<h2>7. 第三方网络访问与 API 披露</h2>
+<p>应用<strong>仅在您主动发起操作时</strong>访问网络。每个存储后端都会把您填写的凭据与您执行的文件操作，由您的 NAS 直接发送给<strong>您选择的</strong>服务商；不会向发布者发送任何数据，也无遥测、无自动回连。</p>
+<table>
+<tr><th>您启用的存储/功能</th><th>访问端点（主机示例）</th><th>发送的数据</th><th>目的地/区域</th></tr>
+<tr><td>阿里云盘</td><td><code>api.alipan.com</code>、<code>openapi.alipan.com</code></td><td>OAuth 访问/刷新令牌、文件列目录与读写请求</td><td>阿里云，中国大陆</td></tr>
+<tr><td>百度网盘</td><td><code>pan.baidu.com</code>、<code>photo.baidu.com</code></td><td>访问令牌、文件操作</td><td>百度，中国大陆</td></tr>
+<tr><td>移动云盘(139)、天翼云盘、123 云盘、115、迅雷、腾讯云盘</td><td><code>mopan.sc.189.cn</code>、<code>api.cloud.189.cn</code>、<code>yun.123pan.com</code>、<code>proapi.115.com</code>、<code>api-pan.xunlei.com</code>、<code>api.vs.tencent.com</code></td><td>您填写的凭据、文件元数据与传输内容</td><td>各服务商，中国大陆</td></tr>
+<tr><td>OneDrive / SharePoint</td><td><code>graph.microsoft.com</code>、<code>login.microsoftonline.com</code></td><td>OAuth 令牌、文件操作</td><td>Microsoft，区域随您的租户</td></tr>
+<tr><td>Google Drive / Photos</td><td><code>www.googleapis.com</code>、<code>photoslibrary.googleapis.com</code></td><td>OAuth 令牌、文件操作</td><td>Google，全球（美/欧数据中心）</td></tr>
+<tr><td>Dropbox / pCloud 等</td><td><code>api.dropboxapi.com</code>、<code>my.pcloud.com</code> 等</td><td>凭据、文件操作</td><td>各服务商（多在美国/欧盟，按其政策）</td></tr>
+<tr><td>S3 兼容对象存储 / Azure Blob</td><td>您配置的端点，如 <code>s3.amazonaws.com</code>、<code>&lt;账户&gt;.blob.core.windows.net</code></td><td>您填写的访问密钥、对象操作</td><td>您配置的区域/账户</td></tr>
+<tr><td>您添加的 WebDAV / FTP / SFTP 服务器</td><td>您填写的地址（通常为局域网）</td><td>用户名/口令、文件操作</td><td>该服务器</td></tr>
+<tr><td>离线下载、链接预览、按 URL 远程上传</td><td>您提交的 URL</td><td>对该 URL 的 HTTP 请求；目标服务器可见您的 NAS IP</td><td>您指定的目标服务器</td></tr>
+<tr><td>更新检查（仅管理员、手动触发）</td><td><code>api.github.com</code>、<code>github.com</code>（可选经您配置的 GitHub 代理：<code>gh-proxy.com</code>、<code>ghproxy.net</code>）</td><td>仅版本查询，不含个人数据或标识符</td><td>GitHub，美国（或您选择的代理）</td></tr>
+<tr><td>ffmpeg 预览/缩略图（可选，本地）</td><td>不联网</td><td>—</td><td>在您的 NAS 上运行</td></tr>
+</table>
+<p>在网页界面中删除或禁用某个存储/集成后，应用即不再访问对应端点。除此之外，本包不会自行联网。</p>
+
+<h2>8. 账户与儿童</h2>
+<p>应用仅具备本地账号体系（管理员 + 可选用户，访客账号默认禁用）。本应用为自托管工具，不面向儿童，也不会在知情情况下处理儿童数据。</p>
+
+<h2>9. 变更与联系</h2>
+<p>本政策随应用包分发（<code>/usr/local/alist/privacy-policy.html</code>），应用内亦经 <code>/alist/privacy-policy.html</code> 提供，并同时发布在 <a href="https://github.com/Moechz/alist/blob/main/PRIVACY.md">github.com/Moechz/alist/PRIVACY.md</a>。实质性变更会同步更新「最后更新」日期。</p>
+<p>联系方式：<a href="mailto:moechz@163.com">moechz@163.com</a> · 发布者：Moechz · 上游项目：<a href="https://github.com/AlistGo/alist">AlistGo/alist</a>（AGPL-3.0）。</p>
 </body>
 </html>

@@ -101,6 +101,12 @@ EOJ
       fi
     fi
     chown -R $APP_USER:$APP_USER "$DATA_DIR" 2>/dev/null || true
+    # 首装密码文件只给 root：上面的 chown -R 会把文件改成 alist 属主，
+    # 而 store 文案对用户的承诺是「仅 root 可读」，这里强制收敛（S11）。
+    if [ -f "$PASS_FILE" ]; then
+      chown root:root "$PASS_FILE" 2>/dev/null || true
+      chmod 0600 "$PASS_FILE" 2>/dev/null || true
+    fi
 
     # 8. 系统层注册（幂等；应用中心安装时平台也会做同样的事）
     install -m 0644 "$APP_DIR/init.d/$APP_ID.service" \

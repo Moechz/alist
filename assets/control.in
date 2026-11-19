@@ -20,8 +20,16 @@ Description: AList File Manager - aggregate cloud drives with WebDAV
  exposed. The first-install admin password is generated automatically
  and stored root-readable in /var/lib/alist/admin_password.txt
  (username: admin, change it after login).
- Database, temp files and search index are stored in /var/lib/alist;
- 'apt remove' keeps them, 'apt purge' deletes them.
+ Database, temp files and search index are stored in /var/lib/alist.
+ Uninstalling (App Center / 'apt remove' / 'dpkg --remove') stops the service and
+ removes /var/lib/alist, the service registration, the nginx route and the
+ dedicated user, leaving no residual configuration or data; make a backup first
+ if you want to keep your library. Upgrading keeps and migrates the data.
  .
- Upstream: https://github.com/AlistGo/alist (AGPL-3.0)
- Upstream author: AList Team. Packaged for TOS by the deb Maintainer.
+ Privacy policy: /usr/local/alist/privacy-policy.html, also served at
+ /alist/privacy-policy.html (and https://github.com/Moechz/alist/blob/main/PRIVACY.md).
+ .
+ Upstream: https://github.com/AlistGo/alist (AGPL-3.0); the binary is built from
+ that source tag by the public CI workflow in this repository
+ (.github/workflows/build-upstream.yml), so the corresponding source is available.
+ Upstream author: AList Team. Publisher and Maintainer of this package: Moechz.

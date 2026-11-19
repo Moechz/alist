@@ -27,6 +27,9 @@
 # 阶段: fetch → stage → verify → deb
 # ============================================================
 set -euo pipefail
+# 权限必须与打包机 umask 无关（S11：曾因 umask 027 生成 0640 的包内文件，
+# nginx 以非 root 身份读取静态隐私政策页时可能 403）
+umask 022
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # shellcheck source=config.env
@@ -287,6 +290,20 @@ PYW
   find "$STAGE_DIR" -name '._*' -delete 2>/dev/null || true
   find "$STAGE_DIR" -name '.DS_Store' -delete 2>/dev/null || true
 
+  # ---- S11：显式、确定的权限（不依赖打包机 umask） --------------------
+  # 公开静态内容与元数据 0644（TOS nginx 以非 root worker 读取时也可读），
+  # 二进制 0755，目录 0755；凭据类文件（config.json / 密码文件）在 postinst
+  # 运行期才生成，那里用 0640/0600 —— 包内不应出现任何机密。
+  log "  + 归一化文件权限（S11）"
+  find "$STAGE_DIR" -type d -exec chmod 0755 {} +
+  find "$STAGE_DIR" -type f -exec chmod 0644 {} +
+  chmod 0755 "$APP/bin/alist"
+  for s in preinst postinst prerm postrm; do
+    if [ -f "$STAGE_DIR/DEBIAN/$s" ]; then chmod 0755 "$STAGE_DIR/DEBIAN/$s"; fi
+  done
+  chmod 0644 "$STAGE_DIR/DEBIAN/control" 2>/dev/null || true
+  chmod 0644 "$STAGE_DIR/usr/share/doc/$APP_ID/"* 2>/dev/null || true
+
   log "组装完成"
 }
 
@@ -392,6 +409,33 @@ PYEOF
   log "校验图标（SVG + viewBox）..."
   grep -q '<svg' "$APP/images/icons/$APP_ID.svg" || { warn "图标非 SVG"; fail=1; }
   grep -q 'viewBox=' "$APP/images/icons/$APP_ID.svg" || { warn "图标缺 viewBox（规范硬性要求）"; fail=1; }
+
+  log "校验 P1（publisher 与 deb Maintainer 同一可追溯标识）..."
+  local pub
+  pub=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['publisher'])" "$APP/config.ini")
+  [ "$pub" = "$MAINTAINER_NAME" ] \
+    || { warn "P1: config.ini publisher '$pub' != deb Maintainer '$MAINTAINER_NAME'"; fail=1; }
+  printf '%s' "$pub" | grep -qiE '^(test|admin|demo|example|todo|tbd|terramaster)$' \
+    && { warn "P1: publisher 是占位符/平台厂商名: $pub"; fail=1; }
+
+  log "校验 S11（包内文件权限归一化）..."
+  local pv
+  for p in "$APP/config.ini" "$APP/$APP_ID.lang" "$APP/privacy-policy.html" \
+           "$APP/webui.bz2" "$APP/images/icons/$APP_ID.svg"; do
+    pv=$(stat -c '%a' "$p" 2>/dev/null || stat -f '%Lp' "$p")
+    [ "$pv" = "644" ] || { warn "S11: ${p#$STAGE_DIR/} 权限 $pv（应为 644）"; fail=1; }
+  done
+  pv=$(stat -c '%a' "$APP/bin/alist" 2>/dev/null || stat -f '%Lp' "$APP/bin/alist")
+  [ "$pv" = "755" ] || { warn "S11: bin/alist 权限 $pv（应为 755）"; fail=1; }
+  if find "$STAGE_DIR" -type f -perm -o+w | grep -q .; then
+    warn "S11: 包内存在任意用户可写文件"; fail=1
+  fi
+
+  log "校验 F11（卸载即清理，升级保留数据）..."
+  grep -qF 'remove|purge' "$ASSETS_DIR/postrm" \
+    || { warn "F11: postrm 必须在 remove 与 purge 时都清理"; fail=1; }
+  grep -q 'upgrade|failed-upgrade' "$ASSETS_DIR/postrm" \
+    || { warn "F11: postrm 必须显式保留 upgrade 路径的数据"; fail=1; }
 
   log "校验 webui.bz2（解压含 .html / 条目属主 root:root / 无 ._ 污染）..."
   tar tjf "$APP/webui.bz2" | grep -q '\.html$' || { warn "webui.bz2 缺少 html"; fail=1; }
