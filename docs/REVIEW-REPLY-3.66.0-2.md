@@ -5,9 +5,13 @@
 > Use as the submission remarks (“Rectified per review comments”) and as the reply to the
 > review e-mail.
 >
-> `3.66.0-1` was submitted for both architectures. The **x86_64** record is already
-> **published**, so this round only withdraws and resubmits **aarch64**, the architecture the
-> report names. The x86_64 download stays on `3.66.0-1` until the next coordinated release.
+> The report names **aarch64**; `3.66.0-1` had been submitted for both architectures and the
+> **x86_64** record was already **published**. That published x86_64 build ships the very same
+> `postinst`, so it carries the same F1 install defect (bare `install` under App Center's
+> minimal PATH). We therefore withdrew the aarch64 `3.66.0-1` and submitted **`3.66.0-2` for
+> both architectures**: aarch64 (withdrawn first, as requested) and x86_64 (submitted as a new
+> version on top of the published listing — the published `3.66.0-1` stays downloadable until
+> `3.66.0-2` is approved).
 
 Dear TerraMaster App Review Team,
 
@@ -127,12 +131,14 @@ Follow-up plan (also recorded in `docs/CHANGELOG.md`):
   we received. Please send the affected component/CVE identifiers and we will evaluate them
   explicitly and rebuild immediately if any component is ours to upgrade.
 
-## Package details (`3.66.0-2`, aarch64)
+## Package details (`3.66.0-2`, both architectures)
 
-- Asset: `alist_aarch64.deb`, SHA-256
+- aarch64: `alist_aarch64.deb`, SHA-256
   `0fdb95c2e1f32c758ab44cdd34c0f992274059c32339fdbc97e65af2f49cf0b7`
-  (x86_64 sibling `alist_x86_64.deb`:
-  `bdc52c8f46aadef9d37b940dac4d3cbc929e2d55e7f92397b52c6c9c0fee12a7`)
+  (version uuid `a69b7adf-7b39-42df-990d-d612a0b80bad`)
+- x86_64: `alist_x86_64.deb`, SHA-256
+  `bdc52c8f46aadef9d37b940dac4d3cbc929e2d55e7f92397b52c6c9c0fee12a7`
+  (version uuid `97d4ef3f-609e-4d2a-ba3f-f9536e92c632`) — same F1/S11/C9/T1 fixes
 - Upstream: AList **v3.66.0** (AGPL-3.0), static binary built from that source tag by this
   repository’s public CI; publisher / Maintainer: **Moechz**
 - Route `/alist/` (new tab), backend `127.0.0.1:15244` only, no exposed port

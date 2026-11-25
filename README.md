@@ -134,9 +134,10 @@ uninstall that leaves no residual files.
 1. Public GitHub repo with `README.md`, `PRIVACY.md`, `NOTICE.md`, `LICENSE`.
 2. Release **tag `v3.66.0-2`** with `alist_x86_64.deb` / `.sha256` and
    `alist_aarch64.deb` / `.sha256` (plus the `build-v3.66.0` source-build release).
-3. Developer platform → version `3.66.0-2`; the 2026-11-24 review only names **aarch64**
-   (the x86_64 record for `3.66.0-1` is already published), so this round resubmits
-   `aarch64` only. In the submission
+3. Developer platform → version `3.66.0-2` for **both aarch64 and x86_64**. The
+   2026-11-24 review names aarch64, but the published x86_64 `3.66.0-1` ships the same
+   `postinst` (F1: bare `install` under App Center's minimal PATH), so the x86_64 record
+   was resubmitted on 2026-11-25 as well. In the submission
    remarks link the privacy policy
    (<https://github.com/Moechz/alist/blob/main/PRIVACY.md>) and state the
    publisher/maintainer identity (Moechz).
