@@ -5,10 +5,27 @@
 # 首装初始化（config.json 预置 + 管理员密码落盘）、启动服务与健康检查。
 # 注：经 TOS 应用中心安装时平台也会注册 init.d 服务与 nginx 配置，
 # 本脚本的操作全部幂等，两条安装路径行为一致。
+#
+# F1（2026-11-24 审核：「应用中心在线安装失败，post-install 提前退出，
+# 服务从未注册」）：应用中心调用 postinst 时的 PATH 可能不包含 /usr/bin，
+# 旧版直接写 `install -m 0640 ...`，命令找不到时 `set -e` 立刻终止，
+# 后面的 systemd 注册/启动完全没执行。修复：
+#   1) 顶部固定标准 PATH（含 /usr/bin、/usr/sbin）；
+#   2) 按审核建议用绝对路径 /usr/bin/install 调用系统工具（缺失时回退 command -v）；
+#   3) 易失败步骤逐个 `|| warn`，任何一步失败都不再中断安装；
+#   4) 服务注册放在密码初始化之后但仍必然执行，保证「服务一定被注册」。
+#
 # 密码方案（审核 F10 要求，已废弃"官方首启打日志"设计）：postinst 安装期
 # 用 admin set 预置随机密码并写入 root-0600 文件 —— 安装期已建号，
 # 服务首启不会再触发上游的 initial password 打印，journal 无明文密码。
+#
+# S11（2026-11-24 审核：文件权限未最小化）：umask 027 + 维护日志 0600 +
+# 数据目录 0750 / config.json 0640 / 密码文件 0600，包内不落任何机密。
+
+# PATH 必须显式固定：App Center 的安装环境可能不继承登录 shell 的 PATH。
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 set -e
+umask 027
 
 APP_ID=alist
 APP_DIR=/usr/local/alist
@@ -18,47 +35,99 @@ APP_PORT=15244
 MAINT_LOG=/var/log/alist-maint.log
 PASS_FILE=$DATA_DIR/admin_password.txt
 
+# ---- 系统工具绝对路径（审核建议 /usr/bin/install 显式调用） ----------------
+INSTALL_BIN=/usr/bin/install
+[ -x "$INSTALL_BIN" ] || INSTALL_BIN=$(command -v install 2>/dev/null || true)
+SYSTEMCTL_BIN=/usr/bin/systemctl
+[ -x "$SYSTEMCTL_BIN" ] || SYSTEMCTL_BIN=$(command -v systemctl 2>/dev/null || true)
+NGINX_BIN=/usr/sbin/nginx
+[ -x "$NGINX_BIN" ] || NGINX_BIN=$(command -v nginx 2>/dev/null || true)
+USERADD_BIN=/usr/sbin/useradd
+[ -x "$USERADD_BIN" ] || USERADD_BIN=$(command -v useradd 2>/dev/null || true)
+RUNUSER_BIN=/usr/sbin/runuser
+[ -x "$RUNUSER_BIN" ] || RUNUSER_BIN=$(command -v runuser 2>/dev/null || true)
+CURL_BIN=/usr/bin/curl
+[ -x "$CURL_BIN" ] || CURL_BIN=$(command -v curl 2>/dev/null || true)
+
 pkg_log() {
   mkdir -p /var/log 2>/dev/null || true
-  echo "$(date '+%F %T') $*" >> "$MAINT_LOG" 2>/dev/null || true
+  { echo "$(date '+%F %T') $*" >> "$MAINT_LOG"; } 2>/dev/null || true
 }
-# 维护日志收敛为 root 可读写（默认 umask 下 0644 会泄露排障细节给本机普通用户）
-chmod 0600 "$MAINT_LOG" 2>/dev/null || true
+
+warn() {
+  echo "警告: $*" >&2
+  pkg_log postinst warn "$*"
+}
+
+# 维护日志只给 root（S11）：umask 027 下新建即 0640，这里再收紧到 0600。
 pkg_log postinst "$1" "new=@VERSION@${2:+ old=$2}"
+chmod 0600 "$MAINT_LOG" 2>/dev/null || true
+
+# install(1) 缺失时的等价实现，保证最小 PATH/裁剪系统下也能落文件
+copy_file() { # copy_file <mode> <src> <dst>
+  local mode=$1 src=$2 dst=$3
+  if [ -n "$INSTALL_BIN" ] && "$INSTALL_BIN" -m "$mode" -o $APP_USER -g $APP_USER "$src" "$dst" 2>/dev/null; then
+    return 0
+  fi
+  mkdir -p "$(dirname "$dst")" || return 1
+  cp -f "$src" "$dst" || return 1
+  chown $APP_USER:$APP_USER "$dst" 2>/dev/null || true   # 用户缺失也不影响落文件
+  chmod "$mode" "$dst"
+}
+
+make_data_dir() { # make_data_dir <mode> <dir>
+  local mode=$1 dir=$2
+  if [ -n "$INSTALL_BIN" ] && "$INSTALL_BIN" -d -o $APP_USER -g $APP_USER -m "$mode" "$dir" 2>/dev/null; then
+    return 0
+  fi
+  mkdir -p "$dir" || return 1
+  chown $APP_USER:$APP_USER "$dir" 2>/dev/null || true
+  chmod "$mode" "$dir"
+}
 
 case "$1" in
   configure)
     # 1. 用户兜底（preinst 已建；平台自动创建路径亦覆盖）
     if ! id -u $APP_USER > /dev/null 2>&1; then
-      useradd --system --user-group --no-create-home --shell /usr/sbin/nologin $APP_USER 2>/dev/null || true
+      if [ -n "$USERADD_BIN" ]; then
+        "$USERADD_BIN" --system --user-group --no-create-home --shell /usr/sbin/nologin $APP_USER 2>/dev/null \
+          || warn "useradd $APP_USER 失败，继续安装"
+      else
+        warn "找不到 useradd，跳过用户创建"
+      fi
     fi
 
     # 2. 文件属主（官方 postinst 模板：应用目录归运行用户）
-    chown -R $APP_USER:$APP_USER "$APP_DIR" 2>/dev/null || true
+    chown -R $APP_USER:$APP_USER "$APP_DIR" 2>/dev/null || warn "chown $APP_DIR 失败，继续安装"
 
     # 3. 解压 webui.bz2（官方模板行为；External 模式下为占位页）
     if [ -f "$APP_DIR/webui.bz2" ]; then
-      ( cd "$APP_DIR" && tar -xjf webui.bz2 2>/dev/null || true )
+      ( cd "$APP_DIR" && tar -xjf webui.bz2 2>/dev/null ) || warn "webui.bz2 解压失败，继续安装"
     fi
 
     # 4. 环境变量文件首装引导：仅在不存在时从随包模板复制（升级永不覆盖用户配置）
     if [ ! -e "$APP_DIR/alist.env" ] && [ -e "$APP_DIR/alist.env.example" ]; then
-      install -m 0640 -o $APP_USER -g $APP_USER \
-        "$APP_DIR/alist.env.example" "$APP_DIR/alist.env"
-      pkg_log postinst bootstrap "alist.env 首装"
+      if copy_file 0640 "$APP_DIR/alist.env.example" "$APP_DIR/alist.env"; then
+        pkg_log postinst bootstrap "alist.env 首装"
+      else
+        warn "alist.env 首装复制失败，继续安装"
+      fi
     fi
 
     # 5. 数据目录（数据库 / 配置 / 临时文件 / 搜索索引 / 日志）
-    install -d -o $APP_USER -g $APP_USER -m 0750 "$DATA_DIR"
+    make_data_dir 0750 "$DATA_DIR" || warn "创建 $DATA_DIR 失败，继续安装"
 
     # 6. 首装预置 config.json（仅在不存在时写入，升级永不覆盖）
     #    安全关键项写死：回环监听 + 端口 + /alist 子路径 + 关闭 HTTPS；
     #    与 alist.env 的活动默认值互为双保险（删除任一层都不会端口外泄）。
     #    site_url 只写路径部分：AList 用它挂载路由前缀与前端 base_path，
     #    不含 scheme://host 可避免生成丢端口的绝对 URL。
-    if [ ! -f "$DATA_DIR/config.json" ]; then
+    CONFIG_READY=0
+    if [ -f "$DATA_DIR/config.json" ]; then
+      CONFIG_READY=1
+    else
       JWT_SECRET=$(openssl rand -hex 16 2>/dev/null || head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')
-      cat > "$DATA_DIR/config.json" <<EOJ
+      if cat > "$DATA_DIR/config.json" <<EOJ
 {
   "force": false,
   "site_url": "/alist",
@@ -75,22 +144,30 @@ case "$1" in
   }
 }
 EOJ
-      chown $APP_USER:$APP_USER "$DATA_DIR/config.json"
-      chmod 0640 "$DATA_DIR/config.json"
-      pkg_log postinst bootstrap "config.json 预置（127.0.0.1:$APP_PORT, site_url=/alist）"
+      then
+        chown $APP_USER:$APP_USER "$DATA_DIR/config.json" 2>/dev/null || true
+        chmod 0640 "$DATA_DIR/config.json" 2>/dev/null || true
+        CONFIG_READY=1
+        pkg_log postinst bootstrap "config.json 预置（127.0.0.1:$APP_PORT, site_url=/alist）"
+      else
+        # 不中断安装（F1），但也绝不启动一个没有回环配置的上游默认实例
+        warn "config.json 预置失败，已注册服务但不启动（避免默认 0.0.0.0:5244 暴露）"
+      fi
     fi
 
     # 7. 首装管理员密码（审核 F10：密码只落 root-0600 文件，绝不进日志）
- #    admin set 在空数据目录上自动走 Init 流程建库建号设密（实测通过）；
+    #    admin set 在空数据目录上自动走 Init 流程建库建号设密（实测通过）；
     #    安装期建号后服务首启不再触发上游的 initial password 日志打印
     if [ ! -f "$DATA_DIR/data.db" ] && [ ! -f "$PASS_FILE" ]; then
       ADMIN_PASS=$(LC_ALL=C tr -dc 'A-HJ-NP-Za-km-z2-9' < /dev/urandom | head -c 16)
-      if command -v runuser > /dev/null 2>&1; then
-        runuser -u $APP_USER -- "$APP_DIR/bin/alist" admin set --data "$DATA_DIR" "$ADMIN_PASS" \
-          > /dev/null 2>&1 || true
-      else
+      if [ -n "$RUNUSER_BIN" ]; then
+        "$RUNUSER_BIN" -u $APP_USER -- "$APP_DIR/bin/alist" admin set --data "$DATA_DIR" "$ADMIN_PASS" \
+          > /dev/null 2>&1 || warn "admin set 执行失败（服务启动后再初始化）"
+      elif command -v su > /dev/null 2>&1; then
         su -s /bin/sh -c "'$APP_DIR/bin/alist' 'admin' 'set' '--data' '$DATA_DIR' '$ADMIN_PASS'" $APP_USER \
-          > /dev/null 2>&1 || true
+          > /dev/null 2>&1 || warn "admin set 执行失败（服务启动后再初始化）"
+      else
+        warn "找不到 runuser/su，跳过安装期密码初始化"
       fi
       if [ -f "$DATA_DIR/data.db" ]; then
         # 密码仅落此文件（root 0600）；不写入维护日志/dpkg 输出，防日志泄露
@@ -107,28 +184,42 @@ EOJ
       chown root:root "$PASS_FILE" 2>/dev/null || true
       chmod 0600 "$PASS_FILE" 2>/dev/null || true
     fi
+    # S11：目录/配置的最低权限兜底（升级路径也不会被放宽）
+    chmod 0750 "$DATA_DIR" 2>/dev/null || true
+    if [ -f "$DATA_DIR/config.json" ]; then
+      chmod 0640 "$DATA_DIR/config.json" 2>/dev/null || true
+    fi
 
     # 8. 系统层注册（幂等；应用中心安装时平台也会做同样的事）
-    install -m 0644 "$APP_DIR/init.d/$APP_ID.service" \
-      /etc/systemd/system/$APP_ID.service
-    systemctl daemon-reload
-
-    # 启用（幂等，升级路径 prerm 只停不拆故必须重 enable）并（重）启动
-    systemctl enable $APP_ID.service > /dev/null 2>&1 || true
-    if [ -n "${2:-}" ]; then
-      systemctl restart $APP_ID.service 2>/dev/null || true
+    #    F1：这一步必须在任何可能失败的初始化之后仍然执行 —— 上面的步骤
+    #    全部 `|| warn`，此处再显式注册并启动，保证服务不会「从未注册」。
+    if [ -f "$APP_DIR/init.d/$APP_ID.service" ]; then
+      copy_file 0644 "$APP_DIR/init.d/$APP_ID.service" "/etc/systemd/system/$APP_ID.service" \
+        || warn "拷贝 systemd unit 失败（dpkg 已放置同名文件）"
+    fi
+    if [ -n "$SYSTEMCTL_BIN" ]; then
+      "$SYSTEMCTL_BIN" daemon-reload 2>/dev/null || warn "systemctl daemon-reload 失败"
+      "$SYSTEMCTL_BIN" enable $APP_ID.service > /dev/null 2>&1 || warn "systemctl enable 失败"
+      if [ "$CONFIG_READY" = "1" ]; then
+        if [ -n "${2:-}" ]; then
+          "$SYSTEMCTL_BIN" restart $APP_ID.service 2>/dev/null || warn "systemctl restart 失败"
+        else
+          "$SYSTEMCTL_BIN" start $APP_ID.service 2>/dev/null || warn "systemctl start 失败"
+        fi
+      else
+        warn "配置未就绪，已注册服务但未启动"
+      fi
     else
-      systemctl start $APP_ID.service 2>/dev/null || true
+      warn "找不到 systemctl，跳过服务注册（应用中心会代为注册）"
     fi
 
     # 9. nginx 路由（TOS 平台会加载 nginx/<appid>.conf，此处在系统 nginx 兜底注册）
     # 注意：裸 location 仅在 server 上下文合法（TOS 的 conf.d 即 include 在 server 层）；
     # 写入后立即 nginx -t 校验，失败则回滚，绝不留下导致 nginx 无法 reload 的配置
-    if command -v nginx > /dev/null 2>&1 && [ -d /etc/nginx/conf.d ]; then
-      install -m 0644 "$APP_DIR/nginx/$APP_ID.conf" \
-        /etc/nginx/conf.d/$APP_ID.conf
-      if nginx -t > /dev/null 2>&1; then
-        nginx -s reload > /dev/null 2>&1 || true
+    if [ -n "$NGINX_BIN" ] && [ -d /etc/nginx/conf.d ] && [ -f "$APP_DIR/nginx/$APP_ID.conf" ]; then
+      if copy_file 0644 "$APP_DIR/nginx/$APP_ID.conf" "/etc/nginx/conf.d/$APP_ID.conf" \
+         && "$NGINX_BIN" -t > /dev/null 2>&1; then
+        "$NGINX_BIN" -s reload > /dev/null 2>&1 || warn "nginx reload 失败"
       else
         rm -f /etc/nginx/conf.d/$APP_ID.conf
         echo "提示: 本机 nginx 的 conf.d 不在 server 上下文，已跳过自动注册 /alist/。" >&2
@@ -139,20 +230,24 @@ EOJ
     # 10. 就绪检查（坑 26）：轮询健康接口而非只看 restart 返回码，30s 上限；
     #     超时打有限状态快照入 dpkg 日志，便于远程排障
     READY=0
-    for i in $(seq 1 30); do
-      if curl -fsS -m 2 "http://127.0.0.1:$APP_PORT/alist/ping" 2>/dev/null | grep -q pong; then
-        READY=1
-        break
-      fi
-      sleep 1
-    done
+    if [ -n "$CURL_BIN" ]; then
+      for i in $(seq 1 30); do
+        if "$CURL_BIN" -fsS -m 2 "http://127.0.0.1:$APP_PORT/alist/ping" 2>/dev/null | grep -q pong; then
+          READY=1
+          break
+        fi
+        sleep 1
+      done
+    fi
     if [ "$READY" = "1" ]; then
       pkg_log postinst "alist.service 就绪（/alist/ping -> pong）"
     else
       echo "警告: alist 服务 30 秒内未就绪，排查命令:" >&2
       echo "      journalctl -u alist -n 50 --no-pager" >&2
       echo "      tail -n 50 $DATA_DIR/log/log.log" >&2
-      systemctl --no-pager -l status $APP_ID.service | head -15 >&2 || true
+      if [ -n "$SYSTEMCTL_BIN" ]; then
+        "$SYSTEMCTL_BIN" --no-pager -l status $APP_ID.service 2>/dev/null | head -15 >&2 || true
+      fi
       pkg_log postinst warn "健康检查超时"
     fi
 
@@ -174,4 +269,6 @@ EOJ
     ;;
 esac
 
+# 安装已成功完成：即便上面的可选步骤有告警，也让 dpkg 把包标记为已配置，
+# 否则应用中心会显示「安装失败」并占据提交/安装槽位（F1 的直接教训）。
 exit 0

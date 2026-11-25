@@ -1,10 +1,14 @@
 #!/bin/bash
 # preinst - 安装/升级前处理（TOS 规范：专用用户必须在 preinst 创建）
 set -e
+# 应用中心/最小 PATH 环境下也要能解析 useradd 等系统工具（F1 同类问题）。
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+umask 027
 
 MAINT_LOG=/var/log/alist-maint.log
 mkdir -p /var/log 2>/dev/null || true
-echo "$(date '+%F %T') preinst $*" >> "$MAINT_LOG" 2>/dev/null || true
+{ echo "$(date '+%F %T') preinst $*" >> "$MAINT_LOG"; } 2>/dev/null || true
+chmod 0600 "$MAINT_LOG" 2>/dev/null || true   # S11：维护日志仅 root 可读
 
 # 创建专用系统用户（平台安装路径下亦会自动创建；此处保证手动 apt 安装也可用；
 # --user-group 显式建同名主组，不依赖 USERGROUPS_ENAB 默认值）

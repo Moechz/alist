@@ -7,10 +7,14 @@
 # remove 与 purge 都做完整清理；升级路径（upgrade/failed-upgrade/…）
 # 绝不清理数据，否则用户升级即丢库。
 set -e
+# 应用中心/最小 PATH 环境下也要能解析 systemctl/nginx 等系统工具（F1 同类问题）。
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+umask 027
 
 MAINT_LOG=/var/log/alist-maint.log
 mkdir -p /var/log 2>/dev/null || true
-echo "$(date '+%F %T') postrm $*" >> "$MAINT_LOG" 2>/dev/null || true
+{ echo "$(date '+%F %T') postrm $*" >> "$MAINT_LOG"; } 2>/dev/null || true
+chmod 0600 "$MAINT_LOG" 2>/dev/null || true   # S11：维护日志仅 root 可读
 
 systemctl daemon-reload 2>/dev/null || true
 

@@ -437,6 +437,54 @@ PYEOF
   grep -q 'upgrade|failed-upgrade' "$ASSETS_DIR/postrm" \
     || { warn "F11: postrm 必须显式保留 upgrade 路径的数据"; fail=1; }
 
+  # C9（2026-11-24）：商店解析器把 lang 值里的 ASCII 分号当 INI 注释，
+  # 描述会被截断且末尾留下半个引号 —— 平台实际显示
+  # `"AList ... First login: username 'admin` 即此问题。全角「；」不受影响。
+  log "校验 C9（lang 值禁用 ASCII 分号，防止商店解析器截断描述）..."
+  if grep -n ';' "$APP/$APP_ID.lang" > /tmp/alist-lang-semi.$$ 2>/dev/null; then
+    warn "C9: $APP_ID.lang 含 ASCII 分号（商店会截断该行）："
+    head -3 /tmp/alist-lang-semi.$$ | cut -c1-160 >&2
+    fail=1
+  fi
+  rm -f /tmp/alist-lang-semi.$$
+
+  # F1（2026-11-24）：应用中心在线安装时 postinst 提前退出、服务从未注册。
+  # 直接原因是最小 PATH 下 `install` 找不到 + set -e。这里把修法固化成门禁：
+  # 固定 PATH、绝对路径 /usr/bin/install、非关键步骤不得裸调用 install。
+  log "校验 F1（postinst 固定 PATH + 绝对路径 install，最小 PATH 下不得早退）..."
+  grep -q '^export PATH=' "$ASSETS_DIR/postinst" \
+    || { warn "F1: postinst 必须在 set -e 前固定 PATH"; fail=1; }
+  grep -q '/usr/bin/install' "$ASSETS_DIR/postinst" \
+    || { warn "F1: postinst 必须以绝对路径 /usr/bin/install 调用 install"; fail=1; }
+  python3 - "$ASSETS_DIR/postinst" <<'PYF1' || fail=1
+import re, sys
+lines = open(sys.argv[1], encoding="utf-8").read().splitlines()
+bare = [l.strip() for l in lines
+        if not l.lstrip().startswith("#")
+        and re.search(r'(?<![\w/$.-])install\s+-', l) and "INSTALL_BIN" not in l]
+if bare:
+    print("F1: postinst 仍有裸 install 调用（最小 PATH 下会 command not found）:")
+    for b in bare[:3]:
+        print("   ", b[:120])
+    sys.exit(1)
+PYF1
+  grep -q 'exit 0' "$ASSETS_DIR/postinst" \
+    || { warn "F1: postinst 末尾必须 exit 0，避免可选步骤把包留成未配置"; fail=1; }
+
+  # S11（2026-11-24）：权限最小化 —— 维护日志 0600、脚本 umask 027、
+  # 运行期数据目录 0750 / config.json 0640 / 密码文件 0600。
+  log "校验 S11（umask 027 + 维护日志 0600 + 运行期权限收敛）..."
+  for s in preinst postinst prerm postrm; do
+    grep -q 'umask 027' "$ASSETS_DIR/$s" \
+      || { warn "S11: $s 必须 umask 027"; fail=1; }
+    grep -q 'chmod 0600 "$MAINT_LOG"' "$ASSETS_DIR/$s" \
+      || { warn "S11: $s 必须把维护日志收敛为 0600"; fail=1; }
+  done
+  grep -q 'make_data_dir 0750' "$ASSETS_DIR/postinst" \
+    || { warn "S11: 数据目录必须 0750"; fail=1; }
+  grep -q 'chmod 0640 "$DATA_DIR/config.json"' "$ASSETS_DIR/postinst" \
+    || { warn "S11: config.json 必须 0640"; fail=1; }
+
   log "校验 webui.bz2（解压含 .html / 条目属主 root:root / 无 ._ 污染）..."
   tar tjf "$APP/webui.bz2" | grep -q '\.html$' || { warn "webui.bz2 缺少 html"; fail=1; }
   if tar tjf "$APP/webui.bz2" | grep -qE '(^|/)\._'; then

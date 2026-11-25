@@ -47,6 +47,37 @@ if missing:
 else:
     print(f"lang: 14 语言齐全 ✓（共 {len(found)} 节）")
 
+# ---------- 2b. lang 值禁用 ASCII 分号（C9） ----------
+# 商店解析器把 ASCII `;` 当 INI 注释起点：描述被截断，平台会显示半句
+# `"AList ... First login: username 'admin`（2026-11-24 审核 C9 的实测现象）。
+semi = [(i + 1, line[:90]) for i, line in enumerate(text.splitlines()) if ";" in line]
+if semi:
+    print(f"lang: 含 ASCII 分号 ✗（商店会截断，共 {len(semi)} 行）")
+    for n, snippet in semi[:3]:
+        print(f"   L{n}: {snippet}")
+    fail = 1
+else:
+    print("lang: 无 ASCII 分号 ✓")
+
+# ---------- 2c. postinst 必须在最小 PATH 下可完成安装（F1） ----------
+postinst = (ROOT / "assets/postinst").read_text(encoding="utf-8")
+if not re.search(r"^export PATH=", postinst, re.M):
+    print("postinst: 未固定 PATH ✗（应用中心最小 PATH 下会提前退出，F1）")
+    fail = 1
+if "/usr/bin/install" not in postinst:
+    print("postinst: 未使用绝对路径 /usr/bin/install ✗（审核 F1 建议）")
+    fail = 1
+bare_install = [l.strip() for l in postinst.splitlines()
+                if not l.lstrip().startswith("#")
+                and re.search(r"(?<![\w/$.-])install\s+-", l) and "INSTALL_BIN" not in l]
+if bare_install:
+    print(f"postinst: 仍有裸 install 调用 ✗ {bare_install[:2]}")
+    fail = 1
+if bare_install or "export PATH=" not in postinst:
+    pass
+else:
+    print("postinst: 固定 PATH + 绝对路径 install ✓")
+
 # ---------- 3. CRLF / BOM 扫描 ----------
 for p in sorted((ROOT / "assets").rglob("*")):
     if not p.is_file() or p.suffix not in {".ini", ".in", ".lang", ".conf",

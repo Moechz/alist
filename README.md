@@ -132,9 +132,11 @@ uninstall that leaves no residual files.
 ## Store submission checklist
 
 1. Public GitHub repo with `README.md`, `PRIVACY.md`, `NOTICE.md`, `LICENSE`.
-2. Release **tag `v3.66.0-1`** with `alist_x86_64.deb` / `.sha256` and
+2. Release **tag `v3.66.0-2`** with `alist_x86_64.deb` / `.sha256` and
    `alist_aarch64.deb` / `.sha256` (plus the `build-v3.66.0` source-build release).
-3. Developer platform → version `3.66.0-1` for `x86_64` and `aarch64`; in the submission
+3. Developer platform → version `3.66.0-2`; the 2026-11-24 review only names **aarch64**
+   (the x86_64 record for `3.66.0-1` is already published), so this round resubmits
+   `aarch64` only. In the submission
    remarks link the privacy policy
    (<https://github.com/Moechz/alist/blob/main/PRIVACY.md>) and state the
    publisher/maintainer identity (Moechz).

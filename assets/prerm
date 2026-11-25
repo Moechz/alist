@@ -1,10 +1,14 @@
 #!/bin/bash
 # prerm - 删除/升级前处理（官方模板：清杀应用用户全部残留进程 + 停用服务）
 set -e
+# 应用中心/最小 PATH 环境下也要能解析 systemctl 等系统工具（F1 同类问题）。
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+umask 027
 
 MAINT_LOG=/var/log/alist-maint.log
 mkdir -p /var/log 2>/dev/null || true
-echo "$(date '+%F %T') prerm $*" >> "$MAINT_LOG" 2>/dev/null || true
+{ echo "$(date '+%F %T') prerm $*" >> "$MAINT_LOG"; } 2>/dev/null || true
+chmod 0600 "$MAINT_LOG" 2>/dev/null || true   # S11：维护日志仅 root 可读
 
 # 清杀应用用户的残留进程（升级安全；AList 停机时收尾上传任务）
 pkill -u alist 2>/dev/null || true

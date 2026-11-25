@@ -1,5 +1,48 @@
 # Changelog
 
+## 3.66.0-2 — 2026-11-25
+
+### Fixed（针对 2026-11-24 `3.66.0-1` (aarch64) 审核报告：C9 / T1 + 正文阻断项 F1 / S11）
+
+- **F1（正文阻断项：App Center 在线安装失败，post-install 提前退出、服务从未注册）**：
+  根因是 `assets/postinst` 在最小/空 `PATH` 下调用裸 `install`，`set -e` 在第 4 步
+  （`install -m 0640 alist.env.example alist.env`）直接终止，后面的 systemd 注册与
+  启动（原第 8 步）永远没有执行，dpkg 把包留成「未配置」，应用中心显示安装失败。
+  修复：脚本顶部 `export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`，
+  按审核建议改用绝对路径 `/usr/bin/install`（缺失时回退 `command -v`），并新增
+  `copy_file` / `make_data_dir` 等价实现；所有易失败步骤改为 `|| warn` 不中断，
+  脚本末尾 `exit 0`，保证即便可选步骤告警也能把包标记为已配置；
+  `preinst` / `prerm` / `postrm` 也同步固定 PATH，避免同类问题。
+- **S11（正文阻断项：文件权限未最小化）**：四个维护脚本统一 `umask 027`；
+  维护日志 `/var/log/alist-maint.log` 在首次写入后显式 `chmod 0600`（旧版 chmod 在
+  文件创建前执行，实际落成 0644，本机普通用户可读）；运行期数据目录 0750、
+  `config.json` 0640、`admin_password.txt` root:root 0600 均在 postinst 里显式收敛，
+  升级路径也不会放宽；包内仍保持公开文件 0644 / 二进制 0755 / 无 world-writable。
+- **C9（描述与实际功能不一致）**：平台解析出的描述以 `"AList ... First login:
+  username 'admin` 截断，根因是 `alist.lang` 的 `descript` / `release_note` /
+  `important` 里用了 ASCII 分号 `;` —— 商店解析器把它当 INI 注释起点。
+  本版清除 14 种语言全部 ASCII 分号（改用句号/逗号或全角「；」），并按实际交付功能
+  重写英文/简中/繁中描述：明确内置 WebDAV 服务、分享链接、离线下载、按用户权限，
+  并注明「视频缩略图与部分预览依赖可选的 ffmpeg（Recommends）」；同时清掉
+  release_note 里 `。. ` 之类的拼接残留。
+- **T1（高危 CVE）**：**已核实上游最新版本就是 AList v3.66.0**（2026-10-21 发布，
+  `AlistGo/alist` 的 releases/tags 均无更新版本），因此本轮无上游可升；deb 内二进制
+  仍由本仓库公开 CI 用 `go-version: 1.25` + `check-latest: true` 从该 tag 源码构建
+  （静态 musl、无 UPX），Go 工具链取构建时最新补丁版。审核所附漏洞扫描报告未随邮件
+  正文提供，答复中已请对方给出被点名的组件/CVE 编号，收到后按组件升级并重发。
+  跟进计划：上游发布新版本后 7 天内升级；Go 安全补丁发布后重跑
+  `.github/workflows/build-upstream.yml` 并更新 `config.env` 两个 sha256 pin。
+
+### Verified
+- `make check`（语法 + 资产静态自检，新增 C9 lang 分号 / F1 postinst 门禁）全绿。
+- `./build.sh all`（amd64）与 `TARGET_ARCH=arm64 ./build.sh all`（arm64）全绿，
+  `build.sh verify` 新增 C9 / F1 / S11 门禁全过。
+- 官方 `TOSAppSelfTestingTool -c` 对 `out/alist_x86_64.deb` 与
+  `out/alist_aarch64.deb` 均输出 `check passed`。
+- 最小 PATH 回归：用 `env -i PATH=/nonexistent` 分别执行旧/新 `postinst configure`，
+  旧版在第 4 步 `install: command not found` 退出 127（复现 F1），新版走绝对路径、
+  逐项告警后正常走到末尾并返回 0（非 root 环境下服务/nginx 步骤按预期告警）。
+
 ## 3.64.0-2 — 2026-09-19
 
 ### Fixed（针对首次提审驳回项 V6/F10/C3/S11）
